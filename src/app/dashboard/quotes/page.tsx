@@ -107,6 +107,13 @@ export default function QuotesPage() {
   
   const isLoading = isLoadingQuotes || isLoadingClients || isLoadingFilaments || isLoadingAccessories;
 
+  const canCreateQuote = React.useMemo(() => {
+    if (calculatedPrice <= 0 || !formValues.clientId) return false;
+    const hasValidMaterial = formValues.materials.some(m => m.filamentId && m.grams > 0);
+    const hasValidAccessory = formValues.accessories.some(a => a.accessoryId && a.quantity > 0);
+    return hasValidMaterial || hasValidAccessory;
+  }, [calculatedPrice, formValues]);
+  
   const resetForm = () => {
     setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [] });
     setCalculatedPrice(0);
@@ -160,33 +167,41 @@ export default function QuotesPage() {
   }, [formValues, filaments, accessories, settings]);
 
   const handleCreateQuote = () => {
-    if (calculatedPrice <= 0 || !formValues.clientId || formValues.materials.length === 0) return;
+    if (!canCreateQuote) return;
+
+    const finalMaterials = formValues.materials
+      .filter((mat) => mat.filamentId && mat.grams > 0)
+      .map(({ key, ...rest }) => rest);
+
+    const finalAccessories = formValues.accessories
+      .filter((acc) => acc.accessoryId && acc.quantity > 0)
+      .map(({ key, ...rest }) => rest);
 
     const quoteData = {
       clientId: formValues.clientId,
       description: formValues.description,
       printingTimeHours: formValues.printingTimeHours,
-      materials: formValues.materials.map(({key, ...rest}) => rest),
-      accessories: formValues.accessories.map(({key, ...rest}) => rest),
+      materials: finalMaterials,
+      accessories: finalAccessories,
       price: calculatedPrice,
       status: 'Pendiente' as const,
       date: new Date().toISOString(),
-      ...costs
+      ...costs,
     };
     addDocumentNonBlocking(quotesCollection, quoteData);
-    
-    quoteData.materials.forEach(mat => {
-        const filamentDoc = doc(firestore, "filaments", mat.filamentId);
-        updateDocumentNonBlocking(filamentDoc, { stockLevel: increment(-mat.grams) });
+
+    quoteData.materials.forEach((mat) => {
+      const filamentDoc = doc(firestore, 'filaments', mat.filamentId);
+      updateDocumentNonBlocking(filamentDoc, { stockLevel: increment(-mat.grams) });
     });
-    quoteData.accessories.forEach(acc => {
-        const accessoryDoc = doc(firestore, "accessories", acc.accessoryId);
-        updateDocumentNonBlocking(accessoryDoc, { stockLevel: increment(-acc.quantity) });
+    quoteData.accessories.forEach((acc) => {
+      const accessoryDoc = doc(firestore, 'accessories', acc.accessoryId);
+      updateDocumentNonBlocking(accessoryDoc, { stockLevel: increment(-acc.quantity) });
     });
 
     setIsSheetOpen(false);
     resetForm();
-  }
+  };
 
   const handleDeleteQuote = async (quoteId: string) => {
     const quoteDocRef = doc(firestore, 'quotes', quoteId);
@@ -319,7 +334,7 @@ export default function QuotesPage() {
             <div className="space-y-2"><Label htmlFor="printingTimeHours">Tiempo de Impresión (horas)</Label><Input id="printingTimeHours" type="number" onChange={(e) => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} required /></div>
           </div>
           <div className="mt-4 rounded-lg border bg-card p-4"><h3 className="text-lg font-semibold">Precio Calculado</h3><p className="text-3xl font-bold text-primary mt-2">{settings.currency}{calculatedPrice.toFixed(2)}</p><p className="text-sm text-muted-foreground">Basado en los costos configurados y el margen de beneficio.</p></div>
-          <SheetFooter className="mt-6"><Button type="button" onClick={handleCreateQuote} disabled={calculatedPrice <= 0 || !formValues.clientId || formValues.materials.length === 0}>Confirmar Cotización</Button></SheetFooter>
+          <SheetFooter className="mt-6"><Button type="button" onClick={handleCreateQuote} disabled={!canCreateQuote}>Confirmar Cotización</Button></SheetFooter>
         </SheetContent>
       </Sheet>
 
