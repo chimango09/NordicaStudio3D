@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Boxes,
-  BrainCircuit,
   Calculator,
   LayoutDashboard,
   PanelLeft,
@@ -34,7 +33,6 @@ const navItems = [
   { href: "/dashboard/clients", icon: Users, label: "Clientes" },
   { href: "/dashboard/inventory", icon: Boxes, label: "Inventario" },
   { href: "/dashboard/expenses", icon: ReceiptText, label: "Gastos" },
-  { href: "/dashboard/advisor", icon: BrainCircuit, label: "Asesor IA" },
 ];
 
 const settingsItem = {

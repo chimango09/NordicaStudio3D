@@ -1,4 +1,1 @@
-import { config } from 'dotenv';
-config();
-
-import '@/ai/flows/ai-powered-cost-advisor.ts';
+// This file has been removed as the AI Advisor feature was disabled.
