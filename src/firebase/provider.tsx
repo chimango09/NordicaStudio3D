@@ -1,11 +1,10 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
-import { initiateAnonymousSignIn } from '@/firebase';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -67,7 +66,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true, // Start loading until first auth event
     userError: null,
   });
-  const hasAttemptedSignIn = useRef(false);
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
@@ -79,15 +77,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => { // Auth state determined
-        if (firebaseUser) {
-            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-        } else if (!hasAttemptedSignIn.current) {
-            hasAttemptedSignIn.current = true;
-            initiateAnonymousSignIn(auth);
-            setUserAuthState(s => ({ ...s, isUserLoading: true }));
-        } else {
-            setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Failed to sign in anonymously.") });
-        }
+        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
