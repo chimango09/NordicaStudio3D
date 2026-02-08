@@ -42,7 +42,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -125,8 +124,10 @@ export default function QuotesPage() {
       
       const totalCost = materialCost + machineCost + electricityCost;
       const finalPrice = totalCost * (1 + settings.profitMargin / 100);
+      const roundedPrice = Math.round(finalPrice / 100) * 100;
+
       setCosts({ materialCost, machineCost, electricityCost });
-      setCalculatedPrice(finalPrice);
+      setCalculatedPrice(roundedPrice);
     } else {
       setCalculatedPrice(0);
       setCosts({ materialCost: 0, machineCost: 0, electricityCost: 0 });
