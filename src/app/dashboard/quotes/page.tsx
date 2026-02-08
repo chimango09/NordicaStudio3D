@@ -108,11 +108,8 @@ export default function QuotesPage() {
   const isLoading = isLoadingQuotes || isLoadingClients || isLoadingFilaments || isLoadingAccessories;
 
   const canCreateQuote = React.useMemo(() => {
-    if (calculatedPrice <= 0 || !formValues.clientId) return false;
-    const hasValidMaterial = formValues.materials.some(m => m.filamentId && m.grams > 0);
-    const hasValidAccessory = formValues.accessories.some(a => a.accessoryId && a.quantity > 0);
-    return hasValidMaterial || hasValidAccessory;
-  }, [calculatedPrice, formValues]);
+    return calculatedPrice > 0 && !!formValues.clientId;
+  }, [calculatedPrice, formValues.clientId]);
   
   const resetForm = () => {
     setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [] });
@@ -150,19 +147,19 @@ export default function QuotesPage() {
         return sum + (accessory ? accessory.cost * acc.quantity : 0);
     }, 0);
 
-    if (printingTimeHours > 0) {
-      const machineCost = settings.machineCost * printingTimeHours;
-      const electricityCost = (settings.printerConsumptionWatts / 1000) * printingTimeHours * settings.electricityCost;
-      
-      const totalCost = materialCost + accessoryCost + machineCost + electricityCost;
-      const finalPrice = totalCost * (1 + settings.profitMargin / 100);
-      const roundedPrice = Math.round(finalPrice / 100) * 100;
-
-      setCosts({ materialCost, accessoryCost, machineCost, electricityCost });
-      setCalculatedPrice(roundedPrice);
+    const machineCost = settings.machineCost * (printingTimeHours || 0);
+    const electricityCost = (settings.printerConsumptionWatts / 1000) * (printingTimeHours || 0) * settings.electricityCost;
+    
+    const totalCost = materialCost + accessoryCost + machineCost + electricityCost;
+    
+    if (totalCost > 0) {
+        const finalPrice = totalCost * (1 + settings.profitMargin / 100);
+        const roundedPrice = Math.round(finalPrice / 100) * 100;
+        setCosts({ materialCost, accessoryCost, machineCost, electricityCost });
+        setCalculatedPrice(roundedPrice);
     } else {
-      setCalculatedPrice(0);
-      setCosts({ materialCost, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
+        setCalculatedPrice(0);
+        setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
     }
   }, [formValues, filaments, accessories, settings]);
 
