@@ -45,6 +45,7 @@ export interface Setting {
 export interface Settings {
     electricityCost: number;
     machineCost: number;
+    printerConsumptionWatts: number;
     profitMargin: number;
     currency: string;
 }

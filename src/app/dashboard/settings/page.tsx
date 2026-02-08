@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const settingsSchema = z.object({
   electricityCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   machineCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
+  printerConsumptionWatts: z.coerce.number().min(0, "El consumo debe ser no negativo."),
   profitMargin: z.coerce.number().min(0, "El margen debe ser no negativo."),
   currency: z.string().min(1, "El símbolo de la moneda es obligatorio."),
 });
@@ -130,6 +131,18 @@ export default function SettingsPage() {
               />
               {errors.electricityCost && (
                 <p className="text-sm text-destructive">{errors.electricityCost.message}</p>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="printerConsumptionWatts">Consumo de Impresora (Watts)</Label>
+              <Input
+                id="printerConsumptionWatts"
+                type="number"
+                step="1"
+                {...register("printerConsumptionWatts")}
+              />
+              {errors.printerConsumptionWatts && (
+                <p className="text-sm text-destructive">{errors.printerConsumptionWatts.message}</p>
               )}
             </div>
             <div className="grid gap-2">

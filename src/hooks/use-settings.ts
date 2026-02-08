@@ -8,6 +8,7 @@ import type { Setting, Settings } from '@/lib/types';
 const DEFAULT_SETTINGS: Settings = {
   electricityCost: 0.15,
   machineCost: 0.5,
+  printerConsumptionWatts: 150,
   profitMargin: 30,
   currency: 'ARS$',
 };

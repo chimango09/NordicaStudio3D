@@ -121,7 +121,7 @@ export default function QuotesPage() {
     if (filament && filamentUsedGrams > 0 && printingTimeHours > 0) {
       const materialCost = (filament.costPerKg / 1000) * filamentUsedGrams;
       const machineCost = settings.machineCost * printingTimeHours;
-      const electricityCost = settings.electricityCost * printingTimeHours;
+      const electricityCost = (settings.printerConsumptionWatts / 1000) * printingTimeHours * settings.electricityCost;
       
       const totalCost = materialCost + machineCost + electricityCost;
       const finalPrice = totalCost * (1 + settings.profitMargin / 100);
@@ -129,6 +129,7 @@ export default function QuotesPage() {
       setCalculatedPrice(finalPrice);
     } else {
       setCalculatedPrice(0);
+      setCosts({ materialCost: 0, machineCost: 0, electricityCost: 0 });
     }
   }, [formValues, filaments, settings]);
 
