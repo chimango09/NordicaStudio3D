@@ -54,13 +54,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, increment } from "firebase/firestore";
+import { collection, doc, increment, getDoc, addDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
-  deleteDocumentNonBlocking,
   setDocumentNonBlocking,
   updateDocumentNonBlocking,
 } from "@/firebase";
@@ -189,18 +188,19 @@ export default function QuotesPage() {
     resetForm();
   }
 
-  const handleDeleteQuote = (quote: Quote) => {
-    (quote.materials ?? []).forEach(mat => {
-        const filamentDoc = doc(firestore, "filaments", mat.filamentId);
-        updateDocumentNonBlocking(filamentDoc, { stockLevel: increment(mat.grams) });
-    });
-    (quote.accessories ?? []).forEach(acc => {
-        const accessoryDoc = doc(firestore, "accessories", acc.accessoryId);
-        updateDocumentNonBlocking(accessoryDoc, { stockLevel: increment(acc.quantity) });
-    });
-    
-    const quoteDoc = doc(firestore, 'quotes', quote.id);
-    deleteDocumentNonBlocking(quoteDoc);
+  const handleDeleteQuote = async (quoteId: string) => {
+    const quoteDocRef = doc(firestore, 'quotes', quoteId);
+    const quoteSnap = await getDoc(quoteDocRef);
+    if (quoteSnap.exists()) {
+      const quoteData = quoteSnap.data();
+      await addDoc(collection(firestore, "trash"), {
+        originalId: quoteSnap.id,
+        originalCollection: "quotes",
+        deletedAt: new Date().toISOString(),
+        data: quoteData,
+      });
+      await deleteDoc(quoteDocRef);
+    }
   }
 
   const handleStatusChange = (quoteId: string, status: Quote['status']) => {
@@ -277,7 +277,7 @@ export default function QuotesPage() {
                                 <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
-                        <DropdownMenuItem onClick={() => handleDeleteQuote(quote)} className="text-destructive">Eliminar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

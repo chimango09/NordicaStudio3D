@@ -35,14 +35,13 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
-  deleteDocumentNonBlocking,
 } from "@/firebase";
 import type { Expense } from "@/lib/types";
 import { useSettings } from "@/hooks/use-settings";
@@ -70,9 +69,19 @@ export default function ExpensesPage() {
     setIsSheetOpen(true);
   };
 
-  const handleDeleteExpense = (expenseId: string) => {
-    const expenseDoc = doc(firestore, "expenses", expenseId);
-    deleteDocumentNonBlocking(expenseDoc);
+  const handleDeleteExpense = async (expenseId: string) => {
+    const expenseDocRef = doc(firestore, "expenses", expenseId);
+    const expenseSnap = await getDoc(expenseDocRef);
+    if (expenseSnap.exists()) {
+        const expenseData = expenseSnap.data();
+        await addDoc(collection(firestore, "trash"), {
+            originalId: expenseSnap.id,
+            originalCollection: 'expenses',
+            deletedAt: new Date().toISOString(),
+            data: expenseData
+        });
+        await deleteDoc(expenseDocRef);
+    }
   };
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {

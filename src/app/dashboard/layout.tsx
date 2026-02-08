@@ -10,6 +10,7 @@ import {
   PanelLeft,
   ReceiptText,
   Settings,
+  Trash2,
   Users,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/dashboard/clients", icon: Users, label: "Clientes" },
   { href: "/dashboard/inventory", icon: Boxes, label: "Inventario" },
   { href: "/dashboard/expenses", icon: ReceiptText, label: "Gastos" },
+  { href: "/dashboard/trash", icon: Trash2, label: "Papelera" },
 ];
 
 const settingsItem = {
@@ -147,9 +149,9 @@ export default function DashboardLayout({
             </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Navegación</SheetTitle>
-            <SheetDescription>Menú principal de la aplicación</SheetDescription>
+          <SheetHeader>
+            <SheetTitle className="sr-only">Navegación</SheetTitle>
+            <SheetDescription className="sr-only">Menú principal de la aplicación</SheetDescription>
           </SheetHeader>
           <div className="flex h-16 items-center border-b px-4">
               <Link href="/dashboard" className="flex items-center gap-2 font-semibold">

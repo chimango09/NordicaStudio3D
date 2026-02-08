@@ -223,6 +223,36 @@
         "name",
         "value"
       ]
+    },
+    "TrashItem": {
+      "title": "TrashItem",
+      "type": "object",
+      "description": "Represents an item that has been soft-deleted and moved to the trash.",
+      "properties": {
+        "originalId": {
+          "type": "string",
+          "description": "The original ID of the document before it was deleted."
+        },
+        "originalCollection": {
+          "type": "string",
+          "description": "The original collection from which the document was deleted."
+        },
+        "deletedAt": {
+          "type": "string",
+          "description": "The timestamp when the item was moved to the trash.",
+          "format": "date-time"
+        },
+        "data": {
+          "type": "object",
+          "description": "A copy of the original document's data."
+        }
+      },
+      "required": [
+        "originalId",
+        "originalCollection",
+        "deletedAt",
+        "data"
+      ]
     }
   },
   "auth": {
@@ -267,6 +297,12 @@
         "$ref": "#/entities/Setting"
       },
       "description": "Stores application settings. `settingId` is the document ID."
+    },
+    "/trash/{trashId}": {
+      "schema": {
+        "$ref": "#/entities/TrashItem"
+      },
+      "description": "Stores soft-deleted items from other collections. `trashId` is the document ID."
     }
   }
 }

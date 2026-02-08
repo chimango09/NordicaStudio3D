@@ -35,14 +35,13 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, getDoc, addDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
-  deleteDocumentNonBlocking,
 } from "@/firebase";
 import type { Client } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -66,9 +65,19 @@ export default function ClientsPage() {
     setIsSheetOpen(true);
   };
   
-  const handleDeleteClient = (clientId: string) => {
-    const clientDoc = doc(firestore, "clients", clientId);
-    deleteDocumentNonBlocking(clientDoc);
+  const handleDeleteClient = async (clientId: string) => {
+    const clientDocRef = doc(firestore, "clients", clientId);
+    const clientSnap = await getDoc(clientDocRef);
+    if (clientSnap.exists()) {
+      const clientData = clientSnap.data();
+      await addDoc(collection(firestore, "trash"), {
+        originalId: clientSnap.id,
+        originalCollection: "clients",
+        deletedAt: new Date().toISOString(),
+        data: clientData,
+      });
+      await deleteDoc(clientDocRef);
+    }
   };
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {

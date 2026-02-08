@@ -29,14 +29,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
-  deleteDocumentNonBlocking,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
 import type { Filament, Accessory } from "@/lib/types";
@@ -66,9 +65,19 @@ export default function InventoryPage() {
     setIsFilamentSheetOpen(true);
   };
 
-  const handleDeleteFilament = (filamentId: string) => {
-    const filamentDoc = doc(firestore, "filaments", filamentId);
-    deleteDocumentNonBlocking(filamentDoc);
+  const handleDeleteFilament = async (filamentId: string) => {
+    const filamentDocRef = doc(firestore, "filaments", filamentId);
+    const filamentSnap = await getDoc(filamentDocRef);
+    if (filamentSnap.exists()) {
+        const filamentData = filamentSnap.data();
+        await addDoc(collection(firestore, "trash"), {
+            originalId: filamentSnap.id,
+            originalCollection: 'filaments',
+            deletedAt: new Date().toISOString(),
+            data: filamentData
+        });
+        await deleteDoc(filamentDocRef);
+    }
   };
 
   const handleFilamentFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -95,9 +104,19 @@ export default function InventoryPage() {
     setIsAccessorySheetOpen(true);
   };
 
-  const handleDeleteAccessory = (accessoryId: string) => {
-    const accessoryDoc = doc(firestore, "accessories", accessoryId);
-    deleteDocumentNonBlocking(accessoryDoc);
+  const handleDeleteAccessory = async (accessoryId: string) => {
+    const accessoryDocRef = doc(firestore, "accessories", accessoryId);
+    const accessorySnap = await getDoc(accessoryDocRef);
+    if (accessorySnap.exists()) {
+        const accessoryData = accessorySnap.data();
+        await addDoc(collection(firestore, "trash"), {
+            originalId: accessorySnap.id,
+            originalCollection: 'accessories',
+            deletedAt: new Date().toISOString(),
+            data: accessoryData
+        });
+        await deleteDoc(accessoryDocRef);
+    }
   };
 
   const handleAccessoryFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {

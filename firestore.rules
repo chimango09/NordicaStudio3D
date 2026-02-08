@@ -10,6 +10,7 @@
  * - /accessories: Manages accessory inventory.
  * - /quotes: Stores job quotes for clients.
  * - /settings: Contains global application configuration.
+ * - /trash: Contains soft-deleted documents from other collections.
  *
  * All collections are treated as private and are only accessible by an authenticated user.
  *
@@ -131,6 +132,21 @@ service cloud.firestore {
      * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
      */
     match /settings/{settingId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+
+    /**
+     * @description Manages soft-deleted documents. Only authenticated users can manage the trash.
+     * @path /trash/{trashId}
+     * @allow (list) An authenticated user lists items in the trash.
+     * @deny (create) An unauthenticated (anonymous) user tries to add an item to the trash.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /trash/{trashId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();

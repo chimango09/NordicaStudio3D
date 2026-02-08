@@ -68,3 +68,11 @@ export interface Settings {
     profitMargin: number;
     currency: string;
 }
+
+export interface TrashItem {
+  id: string;
+  originalId: string;
+  originalCollection: string;
+  deletedAt: string;
+  data: any;
+}
