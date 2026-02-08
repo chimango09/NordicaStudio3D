@@ -34,6 +34,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -43,52 +44,103 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { collection, doc } from "firebase/firestore";
 import {
-  DUMMY_QUOTES,
-  DUMMY_CLIENTS,
-  DUMMY_FILAMENTS,
-  DUMMY_SETTINGS,
-} from "@/lib/placeholder-data";
-import type { Quote } from "@/lib/types";
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from "@/firebase";
+import { useSettings } from "@/hooks/use-settings";
+import type { Quote, Client, Filament } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function QuotesPage() {
-  const [quotes, setQuotes] = React.useState<Quote[]>(DUMMY_QUOTES);
+  const firestore = useFirestore();
+  const { settings } = useSettings();
+
+  const quotesCollection = useMemoFirebase(() => collection(firestore, "quotes"), [firestore]);
+  const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
+
+  const clientsCollection = useMemoFirebase(() => collection(firestore, "clients"), [firestore]);
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
+
+  const filamentsCollection = useMemoFirebase(() => collection(firestore, "filaments"), [firestore]);
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
+
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [formValues, setFormValues] = React.useState({
+    clientId: "",
     filamentId: "",
-    filamentUsed: 0,
-    printTime: 0,
+    filamentUsedGrams: 0,
+    printingTimeHours: 0,
+    description: ""
   });
   const [calculatedPrice, setCalculatedPrice] = React.useState(0);
+  
+  const isLoading = isLoadingQuotes || isLoadingClients || isLoadingFilaments;
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
-    if (typeof e === "string") {
-        setFormValues(prev => ({...prev, filamentId: e}));
-    } else {
-        const { name, value } = e.target;
-        setFormValues(prev => ({...prev, [name]: Number(value)}));
-    }
+  const handleFormChange = (value: string, name: string) => {
+     setFormValues(prev => ({ ...prev, [name]: value }));
   };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+      setFormValues(prev => ({...prev, [name]: value}));
+  }
 
   React.useEffect(() => {
-    const { filamentId, filamentUsed, printTime } = formValues;
-    const filament = DUMMY_FILAMENTS.find((f) => f.id === filamentId);
+    const { filamentId, filamentUsedGrams, printingTimeHours } = formValues;
+    const filament = filaments?.find((f) => f.id === filamentId);
 
-    if (filament && filamentUsed > 0 && printTime > 0) {
-      const materialCost = (filament.pricePerKg / 1000) * filamentUsed;
-      const machineCost = DUMMY_SETTINGS.machineCost * printTime;
-      // Assuming simple energy calculation, replace with more accurate one if needed
-      const electricityCost = DUMMY_SETTINGS.electricityCost * printTime * 0.2; // 0.2 kWh per hour avg.
+    if (filament && filamentUsedGrams > 0 && printingTimeHours > 0) {
+      const materialCost = (filament.costPerKg / 1000) * filamentUsedGrams;
+      const machineCost = settings.machineCost * printingTimeHours;
+      const electricityCost = settings.electricityCost * printingTimeHours * 0.2; // Simplified
       
       const totalCost = materialCost + machineCost + electricityCost;
-      const finalPrice = totalCost * (1 + DUMMY_SETTINGS.profitMargin / 100);
+      const finalPrice = totalCost * (1 + settings.profitMargin / 100);
       setCalculatedPrice(finalPrice);
     } else {
       setCalculatedPrice(0);
     }
-  }, [formValues]);
+  }, [formValues, filaments, settings]);
 
+  const handleCreateQuote = () => {
+    if (calculatedPrice <= 0) return;
+
+    const quoteData: Omit<Quote, 'id' | 'clientName'> = {
+      ...formValues,
+      filamentUsedGrams: Number(formValues.filamentUsedGrams),
+      printingTimeHours: Number(formValues.printingTimeHours),
+      price: calculatedPrice,
+      status: 'Pendiente',
+      date: new Date().toISOString(),
+    };
+    addDocumentNonBlocking(quotesCollection, quoteData);
+    setIsSheetOpen(false);
+    setFormValues({
+        clientId: "",
+        filamentId: "",
+        filamentUsedGrams: 0,
+        printingTimeHours: 0,
+        description: ""
+    });
+  }
+
+  const handleDeleteQuote = (quoteId: string) => {
+    const quoteDoc = doc(firestore, 'quotes', quoteId);
+    deleteDocumentNonBlocking(quoteDoc);
+  }
+
+  const quotes = React.useMemo(() => {
+    return quotesData?.map(quote => ({
+      ...quote,
+      clientName: clients?.find(c => c.id === quote.clientId)?.name || 'N/A'
+    })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+  }, [quotesData, clients])
 
   return (
     <>
@@ -113,7 +165,6 @@ export default function QuotesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID Cotización</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Estado</TableHead>
@@ -124,19 +175,27 @@ export default function QuotesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {quotes.map((quote) => (
+              {isLoading && Array.from({length: 3}).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 ml-auto"/></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8"/></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && quotes.map((quote) => (
                 <TableRow key={quote.id}>
-                  <TableCell className="font-medium">{quote.id}</TableCell>
-                  <TableCell>{quote.clientName}</TableCell>
-                  <TableCell>{quote.date}</TableCell>
+                  <TableCell className="font-medium">{quote.clientName}</TableCell>
+                  <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant={quote.status === 'Completado' ? 'default' : quote.status === 'Confirmado' ? 'secondary' : 'outline'}>
                         {quote.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {DUMMY_SETTINGS.currency}
-                    {quote.totalPrice.toFixed(2)}
+                    {settings.currency}
+                    {quote.price.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -148,8 +207,8 @@ export default function QuotesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem>Ver</DropdownMenuItem>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem disabled>Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -157,6 +216,11 @@ export default function QuotesPage() {
               ))}
             </TableBody>
           </Table>
+            {!isLoading && quotes.length === 0 && (
+                <div className="py-10 text-center text-muted-foreground">
+                    No hay cotizaciones para mostrar.
+                </div>
+            )}
         </CardContent>
       </Card>
 
@@ -169,46 +233,54 @@ export default function QuotesPage() {
             </SheetDescription>
           </SheetHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="client" className="text-right">Cliente</Label>
-              <Select name="client" required>
-                <SelectTrigger className="col-span-3">
+            <div className="space-y-2">
+              <Label htmlFor="client">Cliente</Label>
+              <Select name="clientId" required onValueChange={(val) => handleFormChange(val, "clientId")}>
+                <SelectTrigger>
                   <SelectValue placeholder="Selecciona un cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DUMMY_CLIENTS.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {clients?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="filament" className="text-right">Filamento</Label>
-              <Select name="filament" required onValueChange={(val) => handleFormChange(val, "filamentId")}>
-                <SelectTrigger className="col-span-3">
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción</Label>
+              <Textarea id="description" name="description" placeholder="Descripción del trabajo..." onChange={handleInputChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="filament">Filamento</Label>
+              <Select name="filamentId" required onValueChange={(val) => handleFormChange(val, "filamentId")}>
+                <SelectTrigger>
                   <SelectValue placeholder="Selecciona un filamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DUMMY_FILAMENTS.map(f => <SelectItem key={f.id} value={f.id}>{f.name} - {f.color}</SelectItem>)}
+                  {filaments?.map(f => <SelectItem key={f.id} value={f.id}>{f.name} - {f.color}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="filamentUsed" className="text-right">Filamento (g)</Label>
-              <Input id="filamentUsed" name="filamentUsed" type="number" className="col-span-3" onChange={handleFormChange} required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="printTime" className="text-right">Tiempo (horas)</Label>
-              <Input id="printTime" name="printTime" type="number" className="col-span-3" onChange={handleFormChange} required />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="filamentUsedGrams">Filamento (g)</Label>
+                    <Input id="filamentUsedGrams" name="filamentUsedGrams" type="number" onChange={handleInputChange} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="printingTimeHours">Tiempo (horas)</Label>
+                    <Input id="printingTimeHours" name="printingTimeHours" type="number" onChange={handleInputChange} required />
+                </div>
             </div>
           </div>
           <div className="mt-4 rounded-lg border bg-card p-4">
             <h3 className="text-lg font-semibold">Precio Calculado</h3>
             <p className="text-3xl font-bold text-primary mt-2">
-                {DUMMY_SETTINGS.currency}{calculatedPrice.toFixed(2)}
+                {settings.currency}{calculatedPrice.toFixed(2)}
             </p>
             <p className="text-sm text-muted-foreground">Basado en los costos configurados y el margen de beneficio.</p>
           </div>
           <SheetFooter className="mt-6">
-            <Button type="submit" disabled={calculatedPrice <= 0}>Confirmar Cotización</Button>
+            <Button type="button" onClick={handleCreateQuote} disabled={calculatedPrice <= 0 || !formValues.clientId || !formValues.filamentId}>
+                Confirmar Cotización
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

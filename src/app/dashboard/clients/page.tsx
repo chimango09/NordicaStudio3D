@@ -35,12 +35,24 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DUMMY_CLIENTS } from "@/lib/placeholder-data";
+import { collection, doc } from "firebase/firestore";
+import {
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from "@/firebase";
 import type { Client } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClientsPage() {
-  const [clients, setClients] = React.useState<Client[]>(DUMMY_CLIENTS);
+  const firestore = useFirestore();
+  const clientsCollection = useMemoFirebase(() => collection(firestore, "clients"), [firestore]);
+  const { data: clients, isLoading } = useCollection<Client>(clientsCollection);
+
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingClient, setEditingClient] = React.useState<Client | null>(null);
 
@@ -55,14 +67,14 @@ export default function ClientsPage() {
   };
   
   const handleDeleteClient = (clientId: string) => {
-    setClients(clients.filter(client => client.id !== clientId));
+    const clientDoc = doc(firestore, "clients", clientId);
+    deleteDocumentNonBlocking(clientDoc);
   };
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const newClientData = {
-      id: editingClient ? editingClient.id : String(Date.now()),
+    const clientData = {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
       phone: formData.get("phone") as string,
@@ -70,11 +82,13 @@ export default function ClientsPage() {
     };
 
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? newClientData : c));
+      const clientDoc = doc(firestore, "clients", editingClient.id);
+      setDocumentNonBlocking(clientDoc, clientData, { merge: true });
     } else {
-      setClients([newClientData, ...clients]);
+      addDocumentNonBlocking(clientsCollection, clientData);
     }
     setIsSheetOpen(false);
+    setEditingClient(null);
   };
 
   return (
@@ -110,7 +124,16 @@ export default function ClientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client) => (
+              {isLoading && Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                  <TableCell><Skeleton className="h-5 w-36"/></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                  <TableCell><Skeleton className="h-5 w-48"/></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8"/></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && clients?.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.email}</TableCell>
@@ -139,10 +162,15 @@ export default function ClientsPage() {
               ))}
             </TableBody>
           </Table>
+           {!isLoading && clients?.length === 0 && (
+            <div className="py-10 text-center text-muted-foreground">
+              No hay clientes para mostrar.
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <Sheet open={isSheetOpen} onOpenChange={(isOpen) => { setIsSheetOpen(isOpen); if (!isOpen) setEditingClient(null); }}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
@@ -166,7 +194,7 @@ export default function ClientsPage() {
                 <Label htmlFor="email" className="text-right">
                   Email
                 </Label>
-                <Input id="email" name="email" type="email" defaultValue={editingClient?.email} className="col-span-3" required />
+                <Input id="email" name="email" type="email" defaultValue={editingClient?.email} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="phone" className="text-right">

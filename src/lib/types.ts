@@ -1,35 +1,42 @@
 export interface Client {
-  id: string;
   name: string;
-  email: string;
-  phone: string;
-  address: string;
+  email?: string;
+  phone?: string;
+  address?: string;
 }
 
 export interface Expense {
-  id: string;
-  name: string;
-  category: 'Filamento' | 'Accesorio' | 'Otro';
+  date: string; 
+  description: string;
   amount: number;
-  date: string;
 }
 
 export interface Filament {
-  id: string;
   name: string;
   color: string;
-  material: string;
-  initialStock: number; // in grams
-  currentStock: number; // in grams
-  pricePerKg: number;
+  stockLevel: number; // in grams
+  costPerKg: number;
 }
 
 export interface Quote {
-  id: string;
-  clientName: string;
-  date: string;
-  filamentUsed: number; // in grams
-  printTime: number; // in hours
-  totalPrice: number;
+  clientId: string;
+  clientName?: string; // Denormalized for display
+  date: string; 
+  description: string;
+  filamentId: string;
+  filamentUsedGrams: number;
+  printingTimeHours: number;
+  price: number;
   status: 'Pendiente' | 'Confirmado' | 'Completado';
+}
+
+export interface Setting {
+    value: string;
+}
+
+export interface Settings {
+    electricityCost: number;
+    machineCost: number;
+    profitMargin: number;
+    currency: string;
 }

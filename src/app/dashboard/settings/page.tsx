@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DUMMY_SETTINGS } from "@/lib/placeholder-data";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/page-header";
+import { useSettings } from "@/hooks/use-settings";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const settingsSchema = z.object({
   electricityCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
@@ -30,24 +31,79 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { settings, isLoading, saveSettings } = useSettings();
+
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: DUMMY_SETTINGS,
+    values: settings,
   });
 
+  React.useEffect(() => {
+    if (settings) {
+      reset(settings);
+    }
+  }, [settings, reset]);
+
+
   const onSubmit: SubmitHandler<SettingsFormValues> = async (data) => {
-    // Simulate saving data
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log("Settings saved:", data);
+    saveSettings(data);
     toast({
       title: "Configuración Guardada",
       description: "Tu nueva configuración se ha guardado correctamente.",
     });
+    reset(data); // To reset dirty state
   };
+  
+  if (isLoading) {
+      return (
+        <>
+            <PageHeader
+                title="Configuración"
+                description="Configura costos, márgenes de beneficio y otros ajustes de la aplicación."
+            />
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-7 w-48" />
+                    <Skeleton className="h-4 w-full max-w-sm" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                     <div className="space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+             <Card className="mt-6">
+                <CardHeader>
+                    <Skeleton className="h-7 w-56" />
+                    <Skeleton className="h-4 w-full max-w-md" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                     <div className="space-y-2">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+                <CardFooter className="border-t px-6 py-4">
+                    <Skeleton className="h-10 w-36" />
+                </CardFooter>
+            </Card>
+        </>
+      )
+  }
 
   return (
     <>

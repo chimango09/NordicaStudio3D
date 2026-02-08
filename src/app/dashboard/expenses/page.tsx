@@ -35,19 +35,26 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { collection, doc } from "firebase/firestore";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DUMMY_EXPENSES, DUMMY_SETTINGS } from "@/lib/placeholder-data";
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from "@/firebase";
 import type { Expense } from "@/lib/types";
+import { useSettings } from "@/hooks/use-settings";
 import { PageHeader } from "@/components/shared/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = React.useState<Expense[]>(DUMMY_EXPENSES);
+  const firestore = useFirestore();
+  const { settings } = useSettings();
+  const expensesCollection = useMemoFirebase(() => collection(firestore, "expenses"), [firestore]);
+  const { data: expenses, isLoading } = useCollection<Expense>(expensesCollection);
+
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(
     null
@@ -64,29 +71,32 @@ export default function ExpensesPage() {
   };
 
   const handleDeleteExpense = (expenseId: string) => {
-    setExpenses(expenses.filter((expense) => expense.id !== expenseId));
+    const expenseDoc = doc(firestore, "expenses", expenseId);
+    deleteDocumentNonBlocking(expenseDoc);
   };
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const newExpenseData = {
-      id: editingExpense ? editingExpense.id : String(Date.now()),
-      name: formData.get("name") as string,
-      category: formData.get("category") as Expense["category"],
+      description: formData.get("description") as string,
       amount: parseFloat(formData.get("amount") as string),
-      date: new Date(formData.get("date") as string).toISOString().split("T")[0],
+      date: new Date(formData.get("date") as string).toISOString(),
     };
 
     if (editingExpense) {
-      setExpenses(
-        expenses.map((e) => (e.id === editingExpense.id ? newExpenseData : e))
-      );
+        const expenseDoc = doc(firestore, 'expenses', editingExpense.id);
+        setDocumentNonBlocking(expenseDoc, newExpenseData, { merge: true });
     } else {
-      setExpenses([newExpenseData, ...expenses]);
+        addDocumentNonBlocking(expensesCollection, newExpenseData);
     }
     setIsSheetOpen(false);
+    setEditingExpense(null);
   };
+  
+  const sortedExpenses = React.useMemo(() => {
+    return expenses ? [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
+  }, [expenses]);
 
   return (
     <>
@@ -111,8 +121,7 @@ export default function ExpensesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Categoría</TableHead>
+                <TableHead>Descripción</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead className="text-right">Cantidad</TableHead>
                 <TableHead>
@@ -121,13 +130,20 @@ export default function ExpensesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expenses.map((expense) => (
+              {isLoading && Array.from({length: 4}).map((_, i) => (
+                 <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                 </TableRow>
+              ))}
+              {!isLoading && sortedExpenses.map((expense) => (
                 <TableRow key={expense.id}>
-                  <TableCell className="font-medium">{expense.name}</TableCell>
-                  <TableCell>{expense.category}</TableCell>
-                  <TableCell>{expense.date}</TableCell>
+                  <TableCell className="font-medium">{expense.description}</TableCell>
+                  <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
-                    {DUMMY_SETTINGS.currency}
+                    {settings.currency}
                     {expense.amount.toFixed(2)}
                   </TableCell>
                   <TableCell>
@@ -153,10 +169,15 @@ export default function ExpensesPage() {
               ))}
             </TableBody>
           </Table>
+            {!isLoading && sortedExpenses.length === 0 && (
+                <div className="py-10 text-center text-muted-foreground">
+                    No hay gastos para mostrar.
+                </div>
+            )}
         </CardContent>
       </Card>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <Sheet open={isSheetOpen} onOpenChange={(isOpen) => { setIsSheetOpen(isOpen); if (!isOpen) setEditingExpense(null); }}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
@@ -171,31 +192,16 @@ export default function ExpensesPage() {
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nombre
+                <Label htmlFor="description" className="text-right">
+                  Descripción
                 </Label>
                 <Input
-                  id="name"
-                  name="name"
-                  defaultValue={editingExpense?.name}
+                  id="description"
+                  name="description"
+                  defaultValue={editingExpense?.description}
                   className="col-span-3"
                   required
                 />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">
-                  Categoría
-                </Label>
-                <Select name="category" defaultValue={editingExpense?.category} required>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Filamento">Filamento</SelectItem>
-                        <SelectItem value="Accesorio">Accesorio</SelectItem>
-                        <SelectItem value="Otro">Otro</SelectItem>
-                    </SelectContent>
-                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="amount" className="text-right">
@@ -219,7 +225,7 @@ export default function ExpensesPage() {
                   id="date"
                   name="date"
                   type="date"
-                  defaultValue={editingExpense?.date || new Date().toISOString().split("T")[0]}
+                  defaultValue={editingExpense?.date ? editingExpense.date.split("T")[0] : new Date().toISOString().split("T")[0]}
                   className="col-span-3"
                   required
                 />
