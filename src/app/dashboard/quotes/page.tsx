@@ -54,7 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, increment } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
@@ -62,6 +62,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
   setDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
 import type { Quote, Client, Filament } from "@/lib/types";
@@ -110,7 +111,11 @@ export default function QuotesPage() {
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
-      setFormValues(prev => ({...prev, [name]: parseFloat(value) || value}));
+      if (name === 'filamentUsedGrams' || name === 'printingTimeHours') {
+        setFormValues(prev => ({...prev, [name]: parseFloat(value) || 0}));
+      } else {
+        setFormValues(prev => ({...prev, [name]: value}));
+      }
   }
 
   React.useEffect(() => {
@@ -135,7 +140,7 @@ export default function QuotesPage() {
   }, [formValues, filaments, settings]);
 
   const handleCreateQuote = () => {
-    if (calculatedPrice <= 0 || !formValues.clientId || !formValues.filamentId) return;
+    if (calculatedPrice <= 0 || !formValues.clientId || !formValues.filamentId || formValues.filamentUsedGrams <= 0) return;
 
     const quoteData = {
       ...formValues,
@@ -146,13 +151,11 @@ export default function QuotesPage() {
     };
     addDocumentNonBlocking(quotesCollection, quoteData);
     
-    // Update filament stock
-    const filamentToUpdate = filaments?.find(f => f.id === formValues.filamentId);
-    if (filamentToUpdate) {
-        const filamentDoc = doc(firestore, "filaments", formValues.filamentId);
-        const newStockLevel = filamentToUpdate.stockLevel - formValues.filamentUsedGrams;
-        setDocumentNonBlocking(filamentDoc, { stockLevel: newStockLevel }, { merge: true });
-    }
+    // Update filament stock atomically
+    const filamentDoc = doc(firestore, "filaments", formValues.filamentId);
+    updateDocumentNonBlocking(filamentDoc, { 
+        stockLevel: increment(-formValues.filamentUsedGrams) 
+    });
 
     setIsSheetOpen(false);
     setFormValues({
@@ -168,13 +171,12 @@ export default function QuotesPage() {
   const handleDeleteQuote = (quoteId: string) => {
     const quoteToDelete = quotes.find(q => q.id === quoteId);
 
-    if (quoteToDelete) {
-        const filamentToRestore = filaments?.find(f => f.id === quoteToDelete.filamentId);
-        if (filamentToRestore) {
-            const filamentDoc = doc(firestore, "filaments", quoteToDelete.filamentId);
-            const newStockLevel = filamentToRestore.stockLevel + quoteToDelete.filamentUsedGrams;
-            setDocumentNonBlocking(filamentDoc, { stockLevel: newStockLevel }, { merge: true });
-        }
+    // Restore filament stock atomically if quote is found and has a filament
+    if (quoteToDelete && quoteToDelete.filamentId && quoteToDelete.filamentUsedGrams > 0) {
+        const filamentDoc = doc(firestore, "filaments", quoteToDelete.filamentId);
+        updateDocumentNonBlocking(filamentDoc, { 
+          stockLevel: increment(quoteToDelete.filamentUsedGrams)
+        });
     }
     
     const quoteDoc = doc(firestore, 'quotes', quoteId);
