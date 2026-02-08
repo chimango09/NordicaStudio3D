@@ -46,6 +46,12 @@ const settingsItem = {
   label: "Configuración",
 };
 
+const AppLogo = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-5 w-5 fill-primary-foreground">
+        <path d="M244.2,88.2,140.2,24.2a20,20,0,0,0-24.4,0L11.8,88.2a20,20,0,0,0,12.2,35.8H36v80a20,20,0,0,0,20,20h40a12,12,0,0,0,12-12v-48a12,12,0,0,1,24,0v48a12,12,0,0,0,12,12h40a20,20,0,0,0,20-20v-80h12a20,20,0,0,0,12.2-35.8ZM208,112H48a12,12,0,0,0-12,12v80H56a8,8,0,0,0,8-8V140a20,20,0,0,1,20-20h72a20,20,0,0,1,20,20v56a8,8,0,0,0,8,8h20V124A12,12,0,0,0,208,112ZM128,36,227.3,96H28.7Z"></path>
+    </svg>
+);
+
 function NavLink({
   item,
   isCollapsed,
@@ -106,9 +112,7 @@ export default function DashboardLayout({
       <div className="flex h-16 items-center border-b px-4">
         <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-5 w-5 fill-primary-foreground">
-                    <path d="M244.2,88.2,140.2,24.2a20,20,0,0,0-24.4,0L11.8,88.2a20,20,0,0,0,12.2,35.8H36v80a20,20,0,0,0,20,20h40a12,12,0,0,0,12-12v-48a12,12,0,0,1,24,0v48a12,12,0,0,0,12,12h40a20,20,0,0,0,20-20v-80h12a20,20,0,0,0,12.2-35.8ZM208,112H48a12,12,0,0,0-12,12v80H56a8,8,0,0,0,8-8V140a20,20,0,0,1,20-20h72a20,20,0,0,1,20,20v56a8,8,0,0,0,8,8h20V124A12,12,0,0,0,208,112ZM128,36,227.3,96H28.7Z"></path>
-                </svg>
+                <AppLogo />
             </div>
            <span className={cn("text-lg font-semibold whitespace-nowrap transition-all duration-300", isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100")}>
              Gestor de Impresión 3D
@@ -142,9 +146,7 @@ export default function DashboardLayout({
           <div className="flex h-16 items-center border-b px-4">
               <Link href="/dashboard" className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-5 w-5 fill-primary-foreground">
-                        <path d="M244.2,88.2,140.2,24.2a20,20,0,0,0-24.4,0L11.8,88.2a20,20,0,0,0,12.2,35.8H36v80a20,20,0,0,0,20,20h40a12,12,0,0,0,12-12v-48a12,12,0,0,1,24,0v48a12,12,0,0,0,12,12h40a20,20,0,0,0,20-20v-80h12a20,20,0,0,0,12.2-35.8ZM208,112H48a12,12,0,0,0-12,12v80H56a8,8,0,0,0,8-8V140a20,20,0,0,1,20-20h72a20,20,0,0,1,20,20v56a8,8,0,0,0,8,8h20V124A12,12,0,0,0,208,112ZM128,36,227.3,96H28.7Z"></path>
-                    </svg>
+                    <AppLogo />
                 </div>
                 <span className="text-lg font-medium text-foreground">Gestor de Impresión 3D</span>
               </Link>
