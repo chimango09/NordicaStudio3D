@@ -112,9 +112,7 @@ export default function DashboardLayout({
       <div className="flex h-16 items-center border-b px-4">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-lg overflow-hidden">
             <AppLogo />
-           <span className={cn("whitespace-nowrap transition-all duration-300", isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-2")}>
-             Nórdica Studio 3D
-           </span>
+           <span className={cn("whitespace-nowrap transition-all duration-300", isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-2")}>Nórdica Studio 3D</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-2">
