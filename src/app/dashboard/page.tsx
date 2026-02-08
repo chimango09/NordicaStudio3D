@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Package, ReceiptText, TrendingUp } from "lucide-react";
+import { DollarSign, Wallet, ReceiptText, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -37,21 +37,22 @@ export default function DashboardPage() {
       return sum + cost;
     }, 0);
 
+    const grossProfit = totalRevenue - totalProductionCost;
     const totalOperationalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
-    const netProfit = totalRevenue - totalProductionCost - totalOperationalExpenses;
+    const netProfit = grossProfit - totalOperationalExpenses;
 
     return [
       {
         icon: DollarSign,
         title: "Ingresos Totales",
         value: `${settings.currency} ${totalRevenue.toFixed(2)}`,
-        description: "Basado en cotizaciones entregadas.",
+        description: "Total de cotizaciones entregadas.",
       },
       {
-        icon: Package,
-        title: "Costos de Producción",
-        value: `${settings.currency} ${totalProductionCost.toFixed(2)}`,
-        description: "Costo de cotizaciones entregadas.",
+        icon: TrendingUp,
+        title: "Ganancia Bruta",
+        value: `${settings.currency} ${grossProfit.toFixed(2)}`,
+        description: "Ingresos menos costos de producción.",
       },
       {
         icon: ReceiptText,
@@ -60,10 +61,10 @@ export default function DashboardPage() {
         description: "Todos los gastos operativos registrados.",
       },
       {
-        icon: TrendingUp,
+        icon: Wallet,
         title: "Ganancia Neta",
         value: `${settings.currency} ${netProfit.toFixed(2)}`,
-        description: "Ingresos - costos - gastos.",
+        description: "Ganancia bruta menos gastos.",
       },
     ];
   }, [quotes, expenses, settings.currency]);
