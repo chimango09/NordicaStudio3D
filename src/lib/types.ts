@@ -27,7 +27,7 @@ export interface Quote {
   filamentUsedGrams: number;
   printingTimeHours: number;
   price: number;
-  status: 'Pendiente' | 'Confirmado' | 'Completado';
+  status: 'Pendiente' | 'Imprimiendo' | 'Entregado';
 }
 
 export interface Setting {

@@ -32,10 +32,10 @@ export default function DashboardPage() {
   const isLoading = isLoadingQuotes || isLoadingExpenses || isLoadingClients;
 
   const metrics = React.useMemo(() => {
-    const totalRevenue = quotes?.filter(q => q.status === 'Completado').reduce((sum, q) => sum + q.price, 0) || 0;
+    const totalRevenue = quotes?.filter(q => q.status === 'Entregado').reduce((sum, q) => sum + q.price, 0) || 0;
     const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
     const totalProfit = totalRevenue - totalExpenses;
-    const activeQuotes = quotes?.filter(q => q.status === 'Confirmado' || q.status === 'Pendiente').length || 0;
+    const activeQuotes = quotes?.filter(q => q.status === 'Imprimiendo' || q.status === 'Pendiente').length || 0;
 
     return [
       {
@@ -120,12 +120,12 @@ export default function DashboardPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Cotizaciones Activas</CardTitle>
-                <CardDescription>Cotizaciones pendientes o confirmadas.</CardDescription>
+                <CardDescription>Cotizaciones pendientes o en impresión.</CardDescription>
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-5 w-full" /> :
                  <div className="text-4xl font-bold">
-                  {quotes?.filter(q => q.status === 'Pendiente' || q.status === 'Confirmado').length || 0}
+                  {quotes?.filter(q => q.status === 'Pendiente' || q.status === 'Imprimiendo').length || 0}
                 </div>
                 }
             </CardContent>

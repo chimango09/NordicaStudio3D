@@ -23,6 +23,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -51,6 +54,7 @@ import {
   useMemoFirebase,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  setDocumentNonBlocking,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
 import type { Quote, Client, Filament } from "@/lib/types";
@@ -135,6 +139,11 @@ export default function QuotesPage() {
     deleteDocumentNonBlocking(quoteDoc);
   }
 
+  const handleStatusChange = (quoteId: string, status: Quote['status']) => {
+    const quoteDoc = doc(firestore, 'quotes', quoteId);
+    setDocumentNonBlocking(quoteDoc, { status }, { merge: true });
+  };
+
   const quotes = React.useMemo(() => {
     return quotesData?.map(quote => ({
       ...quote,
@@ -189,7 +198,7 @@ export default function QuotesPage() {
                   <TableCell className="font-medium">{quote.clientName}</TableCell>
                   <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Badge variant={quote.status === 'Completado' ? 'default' : quote.status === 'Confirmado' ? 'secondary' : 'outline'}>
+                    <Badge variant={quote.status === 'Entregado' ? 'default' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>
                         {quote.status}
                     </Badge>
                   </TableCell>
@@ -208,6 +217,16 @@ export default function QuotesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem disabled>Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <span>Cambiar Estado</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Pendiente')}>Pendiente</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Imprimiendo')}>Imprimiendo</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                         <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
