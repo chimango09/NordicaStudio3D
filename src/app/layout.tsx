@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Gestor de Impresión 3D',
+  title: 'Nórdica Studio 3D',
   description: 'Gestiona tu negocio de impresión 3D con facilidad.',
 };
 
