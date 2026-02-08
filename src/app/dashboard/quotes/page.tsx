@@ -135,7 +135,7 @@ export default function QuotesPage() {
   }, [formValues, filaments, settings]);
 
   const handleCreateQuote = () => {
-    if (calculatedPrice <= 0) return;
+    if (calculatedPrice <= 0 || !formValues.clientId || !formValues.filamentId) return;
 
     const quoteData = {
       ...formValues,
@@ -145,6 +145,15 @@ export default function QuotesPage() {
       ...costs
     };
     addDocumentNonBlocking(quotesCollection, quoteData);
+    
+    // Update filament stock
+    const filamentToUpdate = filaments?.find(f => f.id === formValues.filamentId);
+    if (filamentToUpdate) {
+        const filamentDoc = doc(firestore, "filaments", formValues.filamentId);
+        const newStockLevel = filamentToUpdate.stockLevel - formValues.filamentUsedGrams;
+        setDocumentNonBlocking(filamentDoc, { stockLevel: newStockLevel }, { merge: true });
+    }
+
     setIsSheetOpen(false);
     setFormValues({
         clientId: "",
@@ -157,6 +166,17 @@ export default function QuotesPage() {
   }
 
   const handleDeleteQuote = (quoteId: string) => {
+    const quoteToDelete = quotes.find(q => q.id === quoteId);
+
+    if (quoteToDelete) {
+        const filamentToRestore = filaments?.find(f => f.id === quoteToDelete.filamentId);
+        if (filamentToRestore) {
+            const filamentDoc = doc(firestore, "filaments", quoteToDelete.filamentId);
+            const newStockLevel = filamentToRestore.stockLevel + quoteToDelete.filamentUsedGrams;
+            setDocumentNonBlocking(filamentDoc, { stockLevel: newStockLevel }, { merge: true });
+        }
+    }
+    
     const quoteDoc = doc(firestore, 'quotes', quoteId);
     deleteDocumentNonBlocking(quoteDoc);
   }
