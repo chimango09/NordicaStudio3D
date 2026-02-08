@@ -80,19 +80,19 @@ export default function ClientsPage() {
   return (
     <>
       <PageHeader
-        title="Clients"
-        description="Manage your clients and their information."
+        title="Clientes"
+        description="Gestiona tus clientes y su información."
       />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Client List</CardTitle>
-                <CardDescription>A list of all your clients.</CardDescription>
+                <CardTitle>Lista de Clientes</CardTitle>
+                <CardDescription>Una lista de todos tus clientes.</CardDescription>
             </div>
             <Button onClick={handleAddClient}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Add Client
+              Añadir Cliente
             </Button>
           </div>
         </CardHeader>
@@ -100,12 +100,12 @@ export default function ClientsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Nombre</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Address</TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Dirección</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -125,12 +125,12 @@ export default function ClientsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                          Edit
+                          Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDeleteClient(client.id)} className="text-destructive">
-                          Delete
+                          Eliminar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -146,19 +146,19 @@ export default function ClientsPage() {
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
-              {editingClient ? "Edit Client" : "Add New Client"}
+              {editingClient ? "Editar Cliente" : "Añadir Nuevo Cliente"}
             </SheetTitle>
             <SheetDescription>
               {editingClient
-                ? "Update the information for this client."
-                : "Fill in the details for the new client."}
+                ? "Actualiza la información de este cliente."
+                : "Rellena los detalles para el nuevo cliente."}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
-                  Name
+                  Nombre
                 </Label>
                 <Input id="name" name="name" defaultValue={editingClient?.name} className="col-span-3" required />
               </div>
@@ -170,19 +170,19 @@ export default function ClientsPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="phone" className="text-right">
-                  Phone
+                  Teléfono
                 </Label>
                 <Input id="phone" name="phone" defaultValue={editingClient?.phone} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="address" className="text-right">
-                  Address
+                  Dirección
                 </Label>
                 <Input id="address" name="address" defaultValue={editingClient?.address} className="col-span-3" />
               </div>
             </div>
             <SheetFooter>
-              <Button type="submit">{editingClient ? "Save Changes" : "Create Client"}</Button>
+              <Button type="submit">{editingClient ? "Guardar Cambios" : "Crear Cliente"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>

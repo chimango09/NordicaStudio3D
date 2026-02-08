@@ -93,19 +93,19 @@ export default function QuotesPage() {
   return (
     <>
       <PageHeader
-        title="Quotation Tool"
-        description="Create and manage quotes for your 3D printing jobs."
+        title="Herramienta de Cotización"
+        description="Crea y gestiona cotizaciones para tus trabajos de impresión 3D."
       />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Quotes List</CardTitle>
-                <CardDescription>A list of all your quotes.</CardDescription>
+                <CardTitle>Lista de Cotizaciones</CardTitle>
+                <CardDescription>Una lista de todas tus cotizaciones.</CardDescription>
             </div>
             <Button onClick={() => setIsSheetOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Create Quote
+              Crear Cotización
             </Button>
           </div>
         </CardHeader>
@@ -113,13 +113,13 @@ export default function QuotesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Quote ID</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>ID Cotización</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -130,7 +130,7 @@ export default function QuotesPage() {
                   <TableCell>{quote.clientName}</TableCell>
                   <TableCell>{quote.date}</TableCell>
                   <TableCell>
-                    <Badge variant={quote.status === 'Completed' ? 'default' : quote.status === 'Confirmed' ? 'secondary' : 'outline'}>
+                    <Badge variant={quote.status === 'Completado' ? 'default' : quote.status === 'Confirmado' ? 'secondary' : 'outline'}>
                         {quote.status}
                     </Badge>
                   </TableCell>
@@ -147,9 +147,9 @@ export default function QuotesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View</DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem>Ver</DropdownMenuItem>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -163,17 +163,17 @@ export default function QuotesPage() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Create New Quote</SheetTitle>
+            <SheetTitle>Crear Nueva Cotización</SheetTitle>
             <SheetDescription>
-              Calculate the price for a new 3D printing job.
+              Calcula el precio para un nuevo trabajo de impresión 3D.
             </SheetDescription>
           </SheetHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="client" className="text-right">Client</Label>
+              <Label htmlFor="client" className="text-right">Cliente</Label>
               <Select name="client" required>
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a client" />
+                  <SelectValue placeholder="Selecciona un cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   {DUMMY_CLIENTS.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -181,10 +181,10 @@ export default function QuotesPage() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="filament" className="text-right">Filament</Label>
+              <Label htmlFor="filament" className="text-right">Filamento</Label>
               <Select name="filament" required onValueChange={(val) => handleFormChange(val, "filamentId")}>
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a filament" />
+                  <SelectValue placeholder="Selecciona un filamento" />
                 </SelectTrigger>
                 <SelectContent>
                   {DUMMY_FILAMENTS.map(f => <SelectItem key={f.id} value={f.id}>{f.name} - {f.color}</SelectItem>)}
@@ -192,23 +192,23 @@ export default function QuotesPage() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="filamentUsed" className="text-right">Filament (g)</Label>
+              <Label htmlFor="filamentUsed" className="text-right">Filamento (g)</Label>
               <Input id="filamentUsed" name="filamentUsed" type="number" className="col-span-3" onChange={handleFormChange} required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="printTime" className="text-right">Time (hours)</Label>
+              <Label htmlFor="printTime" className="text-right">Tiempo (horas)</Label>
               <Input id="printTime" name="printTime" type="number" className="col-span-3" onChange={handleFormChange} required />
             </div>
           </div>
           <div className="mt-4 rounded-lg border bg-card p-4">
-            <h3 className="text-lg font-semibold">Calculated Price</h3>
+            <h3 className="text-lg font-semibold">Precio Calculado</h3>
             <p className="text-3xl font-bold text-primary mt-2">
                 {DUMMY_SETTINGS.currency}{calculatedPrice.toFixed(2)}
             </p>
-            <p className="text-sm text-muted-foreground">Based on configured costs and profit margin.</p>
+            <p className="text-sm text-muted-foreground">Basado en los costos configurados y el margen de beneficio.</p>
           </div>
           <SheetFooter className="mt-6">
-            <Button type="submit" disabled={calculatedPrice <= 0}>Confirm Quote</Button>
+            <Button type="submit" disabled={calculatedPrice <= 0}>Confirmar Cotización</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

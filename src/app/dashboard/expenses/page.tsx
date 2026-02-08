@@ -91,19 +91,19 @@ export default function ExpensesPage() {
   return (
     <>
       <PageHeader
-        title="Expenses"
-        description="Track all your business-related expenses."
+        title="Gastos"
+        description="Realiza un seguimiento de todos los gastos de tu negocio."
       />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Expense List</CardTitle>
-                <CardDescription>A list of all recorded expenses.</CardDescription>
+                <CardTitle>Lista de Gastos</CardTitle>
+                <CardDescription>Una lista de todos los gastos registrados.</CardDescription>
             </div>
             <Button onClick={handleAddExpense}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Add Expense
+              Añadir Gasto
             </Button>
           </div>
         </CardHeader>
@@ -111,12 +111,12 @@ export default function ExpensesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Categoría</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="text-right">Cantidad</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -139,12 +139,12 @@ export default function ExpensesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
-                          Edit
+                          Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
-                          Delete
+                          Eliminar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -160,19 +160,19 @@ export default function ExpensesPage() {
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
-              {editingExpense ? "Edit Expense" : "Add New Expense"}
+              {editingExpense ? "Editar Gasto" : "Añadir Nuevo Gasto"}
             </SheetTitle>
             <SheetDescription>
               {editingExpense
-                ? "Update the details for this expense."
-                : "Fill in the details for the new expense."}
+                ? "Actualiza los detalles de este gasto."
+                : "Rellena los detalles para el nuevo gasto."}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
-                  Name
+                  Nombre
                 </Label>
                 <Input
                   id="name"
@@ -184,22 +184,22 @@ export default function ExpensesPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">
-                  Category
+                  Categoría
                 </Label>
                 <Select name="category" defaultValue={editingExpense?.category} required>
                     <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="Filament">Filament</SelectItem>
-                        <SelectItem value="Accessory">Accessory</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Filamento">Filamento</SelectItem>
+                        <SelectItem value="Accesorio">Accesorio</SelectItem>
+                        <SelectItem value="Otro">Otro</SelectItem>
                     </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="amount" className="text-right">
-                  Amount
+                  Cantidad
                 </Label>
                 <Input
                   id="amount"
@@ -213,7 +213,7 @@ export default function ExpensesPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">
-                  Date
+                  Fecha
                 </Label>
                 <Input
                   id="date"
@@ -226,7 +226,7 @@ export default function ExpensesPage() {
               </div>
             </div>
             <SheetFooter>
-              <Button type="submit">{editingExpense ? "Save Changes" : "Create Expense"}</Button>
+              <Button type="submit">{editingExpense ? "Guardar Cambios" : "Crear Gasto"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>

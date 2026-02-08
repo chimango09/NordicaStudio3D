@@ -11,30 +11,30 @@ import { PageHeader } from "@/components/shared/page-header";
 const metrics = [
   {
     icon: DollarSign,
-    title: "Total Revenue",
-    value: "$45,231.89",
-    change: "+20.1% from last month",
+    title: "Ingresos Totales",
+    value: "ARS$ 45,231.89",
+    change: "+20.1% desde el mes pasado",
     color: "text-green-500",
   },
   {
     icon: ReceiptText,
-    title: "Total Expenses",
-    value: "$12,874.21",
-    change: "+15.3% from last month",
+    title: "Gastos Totales",
+    value: "ARS$ 12,874.21",
+    change: "+15.3% desde el mes pasado",
     color: "text-red-500",
   },
   {
     icon: DollarSign,
-    title: "Total Profit",
-    value: "$32,357.68",
-    change: "+22.4% from last month",
+    title: "Beneficio Total",
+    value: "ARS$ 32,357.68",
+    change: "+22.4% desde el mes pasado",
     color: "text-green-500",
   },
   {
     icon: Package,
-    title: "Active Quotes",
+    title: "Cotizaciones Activas",
     value: "12",
-    change: "+5 since last week",
+    change: "+5 desde la semana pasada",
     color: "text-blue-500",
   },
 ];
@@ -43,8 +43,8 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        description="Here's a quick overview of your 3D printing business."
+        title="Panel"
+        description="Aquí tienes un resumen rápido de tu negocio de impresión 3D."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric, index) => (
@@ -65,20 +65,20 @@ export default function DashboardPage() {
       <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
             <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>A log of recent quotes and completed prints.</CardDescription>
+                <CardTitle>Actividad Reciente</CardTitle>
+                <CardDescription>Un registro de cotizaciones recientes e impresiones completadas.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground">No recent activity to show.</p>
+                <p className="text-muted-foreground">No hay actividad reciente para mostrar.</p>
             </CardContent>
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle>Filament Stock Levels</CardTitle>
-                <CardDescription>An overview of your current inventory.</CardDescription>
+                <CardTitle>Niveles de Stock de Filamento</CardTitle>
+                <CardDescription>Un resumen de tu inventario actual.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground">Inventory levels are stable.</p>
+                <p className="text-muted-foreground">Los niveles de inventario son estables.</p>
             </CardContent>
         </Card>
       </div>

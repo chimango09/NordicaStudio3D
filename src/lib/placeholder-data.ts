@@ -7,10 +7,10 @@ export const DUMMY_CLIENTS: Client[] = [
 ];
 
 export const DUMMY_EXPENSES: Expense[] = [
-  { id: '1', name: 'PLA Filament - Black', category: 'Filament', amount: 25.99, date: '2023-10-01' },
-  { id: '2', name: 'Nozzle Cleaning Kit', category: 'Accessory', amount: 15.50, date: '2023-10-05' },
-  { id: '3', name: 'PETG Filament - White', category: 'Filament', amount: 29.99, date: '2023-10-10' },
-  { id: '4', name: 'Cloud Service Subscription', category: 'Other', amount: 10.00, date: '2023-10-15' },
+  { id: '1', name: 'PLA Filament - Black', category: 'Filamento', amount: 25.99, date: '2023-10-01' },
+  { id: '2', name: 'Nozzle Cleaning Kit', category: 'Accesorio', amount: 15.50, date: '2023-10-05' },
+  { id: '3', name: 'PETG Filament - White', category: 'Filamento', amount: 29.99, date: '2023-10-10' },
+  { id: '4', name: 'Cloud Service Subscription', category: 'Otro', amount: 10.00, date: '2023-10-15' },
 ];
 
 export const DUMMY_FILAMENTS: Filament[] = [
@@ -21,14 +21,14 @@ export const DUMMY_FILAMENTS: Filament[] = [
 ];
 
 export const DUMMY_QUOTES: Quote[] = [
-  { id: 'Q1001', clientName: 'John Doe', date: '2023-10-02', filamentUsed: 150, printTime: 8, totalPrice: 45.75, status: 'Completed' },
-  { id: 'Q1002', clientName: 'Jane Smith', date: '2023-10-11', filamentUsed: 300, printTime: 16, totalPrice: 90.50, status: 'Confirmed' },
-  { id: 'Q1003', clientName: 'Maker Studio', date: '2023-10-20', filamentUsed: 50, printTime: 2, totalPrice: 15.25, status: 'Pending' },
+  { id: 'Q1001', clientName: 'John Doe', date: '2023-10-02', filamentUsed: 150, printTime: 8, totalPrice: 45.75, status: 'Completado' },
+  { id: 'Q1002', clientName: 'Jane Smith', date: '2023-10-11', filamentUsed: 300, printTime: 16, totalPrice: 90.50, status: 'Confirmado' },
+  { id: 'Q1003', clientName: 'Maker Studio', date: '2023-10-20', filamentUsed: 50, printTime: 2, totalPrice: 15.25, status: 'Pendiente' },
 ];
 
 export const DUMMY_SETTINGS = {
   electricityCost: 0.15, // per kWh
   machineCost: 0.5, // per hour
   profitMargin: 30, // in percent
-  currency: '$',
+  currency: 'ARS$',
 };

@@ -29,18 +29,18 @@ import {
 } from "@/components/ui/tooltip";
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/quotes", icon: Calculator, label: "Quotation" },
-  { href: "/dashboard/clients", icon: Users, label: "Clients" },
-  { href: "/dashboard/inventory", icon: Boxes, label: "Inventory" },
-  { href: "/dashboard/expenses", icon: ReceiptText, label: "Expenses" },
-  { href: "/dashboard/advisor", icon: BrainCircuit, label: "AI Advisor" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Panel" },
+  { href: "/dashboard/quotes", icon: Calculator, label: "Cotizaciones" },
+  { href: "/dashboard/clients", icon: Users, label: "Clientes" },
+  { href: "/dashboard/inventory", icon: Boxes, label: "Inventario" },
+  { href: "/dashboard/expenses", icon: ReceiptText, label: "Gastos" },
+  { href: "/dashboard/advisor", icon: BrainCircuit, label: "Asesor IA" },
 ];
 
 const settingsItem = {
   href: "/dashboard/settings",
   icon: Settings,
-  label: "Settings",
+  label: "Configuración",
 };
 
 function Logo() {
@@ -51,7 +51,7 @@ function Logo() {
                 <path d="M244.2,88.2,140.2,24.2a20,20,0,0,0-24.4,0L11.8,88.2a20,20,0,0,0,12.2,35.8H36v80a20,20,0,0,0,20,20h40a12,12,0,0,0,12-12v-48a12,12,0,0,1,24,0v48a12,12,0,0,0,12,12h40a20,20,0,0,0,20-20v-80h12a20,20,0,0,0,12.2-35.8ZM208,112H48a12,12,0,0,0-12,12v80H56a8,8,0,0,0,8-8V140a20,20,0,0,1,20-20h72a20,20,0,0,1,20,20v56a8,8,0,0,0,8,8h20V124A12,12,0,0,0,208,112ZM128,36,227.3,96H28.7Z"></path>
             </svg>
         </div>
-      <span className="text-lg font-medium text-foreground">3D Print Manager</span>
+      <span className="text-lg font-medium text-foreground">Gestor de Impresión 3D</span>
     </div>
   );
 }

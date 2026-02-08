@@ -1,29 +1,29 @@
 'use server';
 
 /**
- * @fileOverview An AI-powered cost advisor for 3D printing jobs.
+ * @fileOverview Un asesor de costos impulsado por IA para trabajos de impresión 3D.
  *
- * - getOptimalPricingStrategy - A function that suggests optimal pricing strategies.
- * - AIPoweredCostAdvisorInput - The input type for the getOptimalPricingStrategy function.
- * - AIPoweredCostAdvisorOutput - The return type for the getOptimalPricingStrategy function.
+ * - getOptimalPricingStrategy - Una función que sugiere estrategias de precios óptimas.
+ * - AIPoweredCostAdvisorInput - El tipo de entrada para la función getOptimalPricingStrategy.
+ * - AIPoweredCostAdvisorOutput - El tipo de retorno para la función getOptimalPricingStrategy.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AIPoweredCostAdvisorInputSchema = z.object({
-  marketData: z.string().describe('Real-time market data for similar 3D printed products.'),
-  materialCosts: z.string().describe('Detailed costs of the filament and other materials used.'),
-  productionFactors: z.string().describe('Information on production factors like printing time, electricity cost, and machine usage.'),
-  currentPrice: z.number().describe('The current price for the 3D printed piece.'),
-  profitMargin: z.number().describe('The desired profit margin for the print job.'),
+  marketData: z.string().describe('Datos de mercado en tiempo real para productos impresos en 3D similares.'),
+  materialCosts: z.string().describe('Costos detallados del filamento y otros materiales utilizados.'),
+  productionFactors: z.string().describe('Información sobre factores de producción como tiempo de impresión, costo de electricidad y uso de la máquina.'),
+  currentPrice: z.number().describe('El precio actual de la pieza impresa en 3D.'),
+  profitMargin: z.number().describe('El margen de beneficio deseado para el trabajo de impresión.'),
 });
 export type AIPoweredCostAdvisorInput = z.infer<typeof AIPoweredCostAdvisorInputSchema>;
 
 const AIPoweredCostAdvisorOutputSchema = z.object({
-  suggestedPricingStrategy: z.string().describe('AI-powered suggestion for optimal pricing strategy to maximize profitability.'),
-  estimatedProfit: z.number().describe('The estimated profit based on the suggested pricing strategy.'),
-  justification: z.string().describe('The justification for the suggested pricing strategy.'),
+  suggestedPricingStrategy: z.string().describe('Sugerencia impulsada por IA para una estrategia de precios óptima para maximizar la rentabilidad.'),
+  estimatedProfit: z.number().describe('El beneficio estimado basado en la estrategia de precios sugerida.'),
+  justification: z.string().describe('La justificación de la estrategia de precios sugerida.'),
 });
 export type AIPoweredCostAdvisorOutput = z.infer<typeof AIPoweredCostAdvisorOutputSchema>;
 
@@ -35,17 +35,17 @@ const prompt = ai.definePrompt({
   name: 'aiPoweredCostAdvisorPrompt',
   input: {schema: AIPoweredCostAdvisorInputSchema},
   output: {schema: AIPoweredCostAdvisorOutputSchema},
-  prompt: `You are an AI-powered pricing advisor for 3D printing businesses. Analyze the provided data and suggest an optimal pricing strategy.
+  prompt: `Eres un asesor de precios impulsado por IA para empresas de impresión 3D. Analiza los datos proporcionados y sugiere una estrategia de precios óptima.
 
-Real-time Market Data: {{{marketData}}}
-Material Costs: {{{materialCosts}}}
-Production Factors: {{{productionFactors}}}
-Current Price: {{{currentPrice}}}
-Desired Profit Margin: {{{profitMargin}}}
+Datos de mercado en tiempo real: {{{marketData}}}
+Costos de materiales: {{{materialCosts}}}
+Factores de producción: {{{productionFactors}}}
+Precio actual: {{{currentPrice}}}
+Margen de beneficio deseado: {{{profitMargin}}}
 
-Based on this information, suggest a pricing strategy, estimate the profit, and provide a justification for your suggestion.
+Basado en esta información, sugiere una estrategia de precios, estima el beneficio y proporciona una justificación para tu sugerencia.
 
-Output your response in JSON format.
+Devuelve tu respuesta en formato JSON.
 `,
 });
 

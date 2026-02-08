@@ -9,7 +9,7 @@ export interface Client {
 export interface Expense {
   id: string;
   name: string;
-  category: 'Filament' | 'Accessory' | 'Other';
+  category: 'Filamento' | 'Accesorio' | 'Otro';
   amount: number;
   date: string;
 }
@@ -31,5 +31,5 @@ export interface Quote {
   filamentUsed: number; // in grams
   printTime: number; // in hours
   totalPrice: number;
-  status: 'Pending' | 'Confirmed' | 'Completed';
+  status: 'Pendiente' | 'Confirmado' | 'Completado';
 }

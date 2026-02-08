@@ -25,11 +25,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DollarSign, Lightbulb, Loader2, ServerCrash } from "lucide-react";
 
 const formSchema = z.object({
-  marketData: z.string().min(10, "Please provide more details on market data."),
-  materialCosts: z.string().min(10, "Please describe material costs."),
-  productionFactors: z.string().min(10, "Please describe production factors."),
-  currentPrice: z.coerce.number().positive("Current price must be positive."),
-  profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
+  marketData: z.string().min(10, "Proporcione más detalles sobre los datos del mercado."),
+  materialCosts: z.string().min(10, "Describa los costos de los materiales."),
+  productionFactors: z.string().min(10, "Describa los factores de producción."),
+  currentPrice: z.coerce.number().positive("El precio actual debe ser positivo."),
+  profitMargin: z.coerce.number().min(0, "El margen de beneficio no puede ser negativo."),
 });
 
 type FormValues = AIPoweredCostAdvisorInput;
@@ -58,7 +58,7 @@ export default function AdvisorPage() {
       const response = await getOptimalPricingStrategy(data);
       setResult(response);
     } catch (e) {
-      setError("Failed to get pricing advice. Please try again.");
+      setError("No se pudo obtener el asesoramiento de precios. Por favor, inténtelo de nuevo.");
       console.error(e);
     } finally {
       setIsLoading(false);
@@ -68,24 +68,24 @@ export default function AdvisorPage() {
   return (
     <>
       <PageHeader
-        title="AI-Powered Cost Advisor"
-        description="Get optimal pricing strategies for your print jobs using AI."
+        title="Asesor de Costos con IA"
+        description="Obtén estrategias de precios óptimas para tus trabajos de impresión usando IA."
       />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Job Details</CardTitle>
+            <CardTitle>Detalles del Trabajo</CardTitle>
             <CardDescription>
-              Provide the details of your print job and market conditions.
+              Proporciona los detalles de tu trabajo de impresión y las condiciones del mercado.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <Label htmlFor="marketData">Market Data</Label>
+                <Label htmlFor="marketData">Datos de Mercado</Label>
                 <Textarea
                   id="marketData"
-                  placeholder="e.g., Similar products sell for $20-$30 on Etsy. High demand for custom colors."
+                  placeholder="ej., Productos similares se venden por ARS$2000-ARS$3000 en Etsy. Alta demanda de colores personalizados."
                   {...register("marketData")}
                 />
                 {errors.marketData && (
@@ -95,10 +95,10 @@ export default function AdvisorPage() {
                 )}
               </div>
               <div>
-                <Label htmlFor="materialCosts">Material Costs</Label>
+                <Label htmlFor="materialCosts">Costos de Material</Label>
                 <Textarea
                   id="materialCosts"
-                  placeholder="e.g., 150g of PLA filament at $25/kg. $0.50 for post-processing supplies."
+                  placeholder="ej., 150g de filamento PLA a ARS$25000/kg. ARS$500 para suministros de post-procesamiento."
                   {...register("materialCosts")}
                 />
                 {errors.materialCosts && (
@@ -108,10 +108,10 @@ export default function AdvisorPage() {
                 )}
               </div>
               <div>
-                <Label htmlFor="productionFactors">Production Factors</Label>
+                <Label htmlFor="productionFactors">Factores de Producción</Label>
                 <Textarea
                   id="productionFactors"
-                  placeholder="e.g., 8-hour print time. Electricity cost is $0.15/kWh. Printer maintenance is $0.50/hour."
+                  placeholder="ej., Tiempo de impresión de 8 horas. El costo de la electricidad es de ARS$150/kWh. El mantenimiento de la impresora es de ARS$500/hora."
                   {...register("productionFactors")}
                 />
                 {errors.productionFactors && (
@@ -122,12 +122,12 @@ export default function AdvisorPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="currentPrice">Current Price ($)</Label>
+                  <Label htmlFor="currentPrice">Precio Actual (ARS$)</Label>
                   <Input
                     id="currentPrice"
                     type="number"
                     step="0.01"
-                    placeholder="25.00"
+                    placeholder="2500.00"
                     {...register("currentPrice")}
                   />
                   {errors.currentPrice && (
@@ -137,7 +137,7 @@ export default function AdvisorPage() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="profitMargin">Desired Profit Margin (%)</Label>
+                  <Label htmlFor="profitMargin">Margen de Beneficio Deseado (%)</Label>
                   <Input
                     id="profitMargin"
                     type="number"
@@ -155,10 +155,10 @@ export default function AdvisorPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Getting Advice...
+                    Obteniendo Asesoramiento...
                   </>
                 ) : (
-                  "Get Pricing Advice"
+                  "Obtener Asesoramiento de Precios"
                 )}
               </Button>
             </form>
@@ -167,16 +167,16 @@ export default function AdvisorPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>AI Recommendation</CardTitle>
+            <CardTitle>Recomendación de la IA</CardTitle>
             <CardDescription>
-              Our AI's suggestion for the optimal pricing strategy.
+              La sugerencia de nuestra IA para la estrategia de precios óptima.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-[400px] items-center justify-center">
             {isLoading && (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <span>Analyzing data...</span>
+                <span>Analizando datos...</span>
               </div>
             )}
             {error && (
@@ -189,28 +189,28 @@ export default function AdvisorPage() {
               <div className="text-center text-muted-foreground">
                 <Lightbulb className="mx-auto h-12 w-12" />
                 <p className="mt-4">
-                  Your pricing advice will appear here once you submit the form.
+                  Tu asesoramiento de precios aparecerá aquí una vez que envíes el formulario.
                 </p>
               </div>
             )}
             {result && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Suggested Strategy</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Estrategia Sugerida</h3>
                   <p className="mt-1 text-lg font-semibold">{result.suggestedPricingStrategy}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Justification</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Justificación</h3>
                   <p className="mt-1">{result.justification}</p>
                 </div>
                 <Card className="bg-primary/10">
                   <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Estimated Profit</CardTitle>
+                    <CardTitle className="text-sm font-medium">Beneficio Estimado</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold text-primary">
-                      ${result.estimatedProfit.toFixed(2)}
+                      ARS${result.estimatedProfit.toFixed(2)}
                     </p>
                   </CardContent>
                 </Card>

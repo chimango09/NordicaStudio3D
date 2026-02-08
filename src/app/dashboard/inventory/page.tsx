@@ -15,13 +15,13 @@ export default function InventoryPage() {
   return (
     <>
       <PageHeader
-        title="Filament Inventory"
-        description="Track and manage your filament stock levels."
+        title="Inventario de Filamento"
+        description="Rastrea y gestiona tus niveles de stock de filamento."
       />
        <div className="flex justify-end mb-4">
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Filament
+          Añadir Filamento
         </Button>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -44,7 +44,7 @@ export default function InventoryPage() {
               <CardContent>
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Stock Level</span>
+                    <span>Nivel de Stock</span>
                     <span>
                       {filament.currentStock}g / {filament.initialStock}g
                     </span>
@@ -52,14 +52,14 @@ export default function InventoryPage() {
                   <Progress value={stockPercentage} className="mt-1 h-2" />
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Price per kg</span>
+                  <span className="text-muted-foreground">Precio por kg</span>
                   <span className="font-medium">
                     {DUMMY_SETTINGS.currency}
                     {filament.pricePerKg.toFixed(2)}
                   </span>
                 </div>
                  <Button variant="outline" size="sm" className="w-full mt-4">
-                    Restock
+                    Reponer
                 </Button>
               </CardContent>
             </Card>
