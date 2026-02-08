@@ -19,6 +19,9 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import {
   Tooltip,
@@ -144,29 +147,33 @@ export default function DashboardLayout({
             </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
-        <div className="flex h-16 items-center border-b px-4">
-            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                <Logo />
-            </Link>
-        </div>
-        <nav className="flex-1 space-y-2 p-4">
-            {navItems.map((item) => (
-                <Button key={item.href} asChild variant={pathname === item.href ? "secondary" : "ghost"} className="w-full justify-start">
-                    <Link href={item.href}>
-                        <item.icon className="mr-4 h-5 w-5" />
-                        {item.label}
-                    </Link>
-                </Button>
-            ))}
-        </nav>
-        <div className="mt-auto space-y-2 p-4 border-t">
-            <Button asChild variant={pathname === settingsItem.href ? "secondary" : "ghost"} className="w-full justify-start">
-                <Link href={settingsItem.href}>
-                    <settingsItem.icon className="mr-4 h-5 w-5" />
-                    {settingsItem.label}
-                </Link>
-            </Button>
-        </div>
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navegación</SheetTitle>
+            <SheetDescription>Menú principal de la aplicación</SheetDescription>
+          </SheetHeader>
+          <div className="flex h-16 items-center border-b px-4">
+              <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                  <Logo />
+              </Link>
+          </div>
+          <nav className="flex-1 space-y-2 p-4">
+              {navItems.map((item) => (
+                  <Button key={item.href} asChild variant={pathname === item.href ? "secondary" : "ghost"} className="w-full justify-start">
+                      <Link href={item.href}>
+                          <item.icon className="mr-4 h-5 w-5" />
+                          {item.label}
+                      </Link>
+                  </Button>
+              ))}
+          </nav>
+          <div className="mt-auto space-y-2 p-4 border-t">
+              <Button asChild variant={pathname === settingsItem.href ? "secondary" : "ghost"} className="w-full justify-start">
+                  <Link href={settingsItem.href}>
+                      <settingsItem.icon className="mr-4 h-5 w-5" />
+                      {settingsItem.label}
+                  </Link>
+              </Button>
+          </div>
         </SheetContent>
     </Sheet>
   );
