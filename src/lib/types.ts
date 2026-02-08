@@ -8,7 +8,7 @@ export interface Client {
 
 export interface Expense {
   id: string;
-  date: string; 
+  date: string;
   description: string;
   amount: number;
 }
@@ -21,21 +21,40 @@ export interface Filament {
   costPerKg: number;
 }
 
+export interface Accessory {
+  id: string;
+  name: string;
+  stockLevel: number;
+  cost: number;
+}
+
+export interface QuoteMaterial {
+  filamentId: string;
+  grams: number;
+}
+
+export interface QuoteAccessory {
+  accessoryId: string;
+  quantity: number;
+}
+
 export interface Quote {
   id: string;
   clientId: string;
   clientName?: string; // Denormalized for display
-  date: string; 
+  date: string;
   description: string;
-  filamentId: string;
-  filamentUsedGrams: number;
+  materials: QuoteMaterial[];
+  accessories: QuoteAccessory[];
   printingTimeHours: number;
   price: number;
   status: 'Pendiente' | 'Imprimiendo' | 'Entregado';
   materialCost: number;
+  accessoryCost: number;
   machineCost: number;
   electricityCost: number;
 }
+
 
 export interface Setting {
     id: string;

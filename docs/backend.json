@@ -79,6 +79,30 @@
         "costPerKg"
       ]
     },
+    "Accessory": {
+      "title": "Accessory",
+      "type": "object",
+      "description": "Represents an accessory that can be added to a print job, like lamps or cables.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the accessory."
+        },
+        "stockLevel": {
+          "type": "number",
+          "description": "Current stock level of the accessory."
+        },
+        "cost": {
+          "type": "number",
+          "description": "Cost of a single unit of the accessory."
+        }
+      },
+      "required": [
+        "name",
+        "stockLevel",
+        "cost"
+      ]
+    },
     "Quote": {
       "title": "Quote",
       "type": "object",
@@ -97,13 +121,43 @@
           "type": "string",
           "description": "Description of the print job."
         },
-        "filamentId": {
-          "type": "string",
-          "description": "Reference to Filament."
+        "materials": {
+          "type": "array",
+          "description": "List of filaments used in the job.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "filamentId": {
+                "type": "string"
+              },
+              "grams": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "filamentId",
+              "grams"
+            ]
+          }
         },
-        "filamentUsedGrams": {
-          "type": "number",
-          "description": "Amount of filament used in grams."
+        "accessories": {
+          "type": "array",
+          "description": "List of accessories used in the job.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "accessoryId": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "accessoryId",
+              "quantity"
+            ]
+          }
         },
         "printingTimeHours": {
           "type": "number",
@@ -114,32 +168,39 @@
           "description": "Total price of the quote."
         },
         "status": {
-            "type": "string",
-            "description": "The status of the quote.",
-            "enum": ["Pendiente", "Imprimiendo", "Entregado"]
+          "type": "string",
+          "description": "The status of the quote.",
+          "enum": [
+            "Pendiente",
+            "Imprimiendo",
+            "Entregado"
+          ]
         },
         "materialCost": {
-            "type": "number",
-            "description": "Cost of the material for the job."
+          "type": "number",
+          "description": "Total cost of all materials (filaments) for the job."
+        },
+        "accessoryCost": {
+          "type": "number",
+          "description": "Total cost of all accessories for the job."
         },
         "machineCost": {
-            "type": "number",
-            "description": "Cost of machine usage for the job."
+          "type": "number",
+          "description": "Cost of machine usage for the job."
         },
         "electricityCost": {
-            "type": "number",
-            "description": "Cost of electricity for the job."
+          "type": "number",
+          "description": "Cost of electricity for the job."
         }
       },
       "required": [
         "clientId",
         "date",
-        "filamentId",
-        "filamentUsedGrams",
         "printingTimeHours",
         "price",
         "status",
         "materialCost",
+        "accessoryCost",
         "machineCost",
         "electricityCost"
       ]
@@ -172,23 +233,39 @@
   },
   "firestore": {
     "/clients/{clientId}": {
-      "schema": { "$ref": "#/entities/Client" },
+      "schema": {
+        "$ref": "#/entities/Client"
+      },
       "description": "Stores client information. `clientId` is the document ID."
     },
     "/expenses/{expenseId}": {
-      "schema": { "$ref": "#/entities/Expense" },
+      "schema": {
+        "$ref": "#/entities/Expense"
+      },
       "description": "Stores expense records. `expenseId` is the document ID."
     },
     "/filaments/{filamentId}": {
-      "schema": { "$ref": "#/entities/Filament" },
+      "schema": {
+        "$ref": "#/entities/Filament"
+      },
       "description": "Stores filament inventory information. `filamentId` is the document ID."
     },
+    "/accessories/{accessoryId}": {
+      "schema": {
+        "$ref": "#/entities/Accessory"
+      },
+      "description": "Stores accessory inventory information. `accessoryId` is the document ID."
+    },
     "/quotes/{quoteId}": {
-      "schema": { "$ref": "#/entities/Quote" },
+      "schema": {
+        "$ref": "#/entities/Quote"
+      },
       "description": "Stores quotes for 3D printing jobs. `quoteId` is the document ID."
     },
     "/settings/{settingId}": {
-      "schema": { "$ref": "#/entities/Setting" },
+      "schema": {
+        "$ref": "#/entities/Setting"
+      },
       "description": "Stores application settings. `settingId` is the document ID."
     }
   }

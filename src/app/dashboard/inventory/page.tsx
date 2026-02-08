@@ -28,6 +28,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { collection, doc } from "firebase/firestore";
 import {
   useFirestore,
@@ -38,27 +39,31 @@ import {
   deleteDocumentNonBlocking,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
-import type { Filament } from "@/lib/types";
+import type { Filament, Accessory } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function InventoryPage() {
   const firestore = useFirestore();
   const { settings } = useSettings();
+  
   const filamentsCollection = useMemoFirebase(() => collection(firestore, "filaments"), [firestore]);
-  const { data: filaments, isLoading } = useCollection<Filament>(filamentsCollection);
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
 
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const accessoriesCollection = useMemoFirebase(() => collection(firestore, "accessories"), [firestore]);
+  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesCollection);
+
+  const [isFilamentSheetOpen, setIsFilamentSheetOpen] = React.useState(false);
   const [editingFilament, setEditingFilament] = React.useState<Filament | null>(null);
 
-  const handleAddFilament = () => {
-    setEditingFilament(null);
-    setIsSheetOpen(true);
-  };
+  const [isAccessorySheetOpen, setIsAccessorySheetOpen] = React.useState(false);
+  const [editingAccessory, setEditingAccessory] = React.useState<Accessory | null>(null);
 
-  const handleEditFilament = (filament: Filament) => {
+  const isLoading = isLoadingFilaments || isLoadingAccessories;
+
+  const handleOpenFilamentSheet = (filament: Filament | null) => {
     setEditingFilament(filament);
-    setIsSheetOpen(true);
+    setIsFilamentSheetOpen(true);
   };
 
   const handleDeleteFilament = (filamentId: string) => {
@@ -66,7 +71,7 @@ export default function InventoryPage() {
     deleteDocumentNonBlocking(filamentDoc);
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFilamentFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const filamentData = {
@@ -82,139 +87,168 @@ export default function InventoryPage() {
     } else {
       addDocumentNonBlocking(filamentsCollection, filamentData);
     }
-    setIsSheetOpen(false);
-    setEditingFilament(null);
+    setIsFilamentSheetOpen(false);
+  };
+
+  const handleOpenAccessorySheet = (accessory: Accessory | null) => {
+    setEditingAccessory(accessory);
+    setIsAccessorySheetOpen(true);
+  };
+
+  const handleDeleteAccessory = (accessoryId: string) => {
+    const accessoryDoc = doc(firestore, "accessories", accessoryId);
+    deleteDocumentNonBlocking(accessoryDoc);
+  };
+
+  const handleAccessoryFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const accessoryData = {
+      name: formData.get("name") as string,
+      stockLevel: parseInt(formData.get("stockLevel") as string, 10),
+      cost: parseFloat(formData.get("cost") as string),
+    };
+
+    if (editingAccessory) {
+      const accessoryDoc = doc(firestore, "accessories", editingAccessory.id);
+      setDocumentNonBlocking(accessoryDoc, accessoryData, { merge: true });
+    } else {
+      addDocumentNonBlocking(accessoriesCollection, accessoryData);
+    }
+    setIsAccessorySheetOpen(false);
   };
 
   return (
     <>
       <PageHeader
-        title="Inventario de Filamento"
-        description="Rastrea y gestiona tus niveles de stock de filamento."
+        title="Inventario"
+        description="Rastrea y gestiona tus niveles de stock de filamentos y accesorios."
       />
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleAddFilament}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Añadir Filamento
-        </Button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {isLoading && Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-4 w-24 mt-2" />
-                </div>
-                <Skeleton className="h-6 w-6 rounded-full" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 space-y-1">
-                <div className="flex justify-between">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-20" />
-                </div>
-                <Skeleton className="h-2 w-full" />
-              </div>
-              <div className="flex justify-between items-center">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-5 w-16" />
-              </div>
-              <Skeleton className="h-9 w-full mt-4" />
-            </CardContent>
-          </Card>
-        ))}
-        {!isLoading && filaments?.map((filament) => (
-          <Card key={filament.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>{filament.name}</CardTitle>
-                  <CardDescription>{filament.color}</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 rounded-full border" style={{ backgroundColor: filament.color.toLowerCase().replace(/ /g, "") }}></div>
+      <Tabs defaultValue="filaments">
+        <div className="flex justify-between items-center mb-4">
+            <TabsList>
+                <TabsTrigger value="filaments">Filamentos</TabsTrigger>
+                <TabsTrigger value="accessories">Accesorios</TabsTrigger>
+            </TabsList>
+            <TabsContent value="filaments" className="m-0">
+                <Button onClick={() => handleOpenFilamentSheet(null)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Añadir Filamento
+                </Button>
+            </TabsContent>
+            <TabsContent value="accessories" className="m-0">
+                <Button onClick={() => handleOpenAccessorySheet(null)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Añadir Accesorio
+                </Button>
+            </TabsContent>
+        </div>
+
+        <TabsContent value="filaments">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {isLoadingFilaments && Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-24 w-full" /></CardContent></Card>
+            ))}
+            {!isLoadingFilaments && filaments?.map((filament) => (
+              <Card key={filament.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle>{filament.name}</CardTitle>
+                      <CardDescription>{filament.color}</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex h-6 w-6 rounded-full border" style={{ backgroundColor: filament.color.toLowerCase().replace(/ /g, "") }}></div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleOpenFilamentSheet(filament)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteFilament(filament.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-muted-foreground"><span>Nivel de Stock</span><span>{filament.stockLevel}g</span></div>
+                    <Progress value={(filament.stockLevel / 1000) * 100} className="mt-1 h-2" />
+                  </div>
+                  <div className="flex justify-between items-center text-sm"><span className="text-muted-foreground">Costo por kg</span><span className="font-medium">{settings.currency}{filament.costPerKg.toFixed(2)}</span></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {!isLoadingFilaments && filaments?.length === 0 && (
+            <div className="col-span-full py-10 text-center text-muted-foreground">No hay filamentos para mostrar.</div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="accessories">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {isLoadingAccessories && Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-24 w-full" /></CardContent></Card>
+            ))}
+            {!isLoadingAccessories && accessories?.map((accessory) => (
+              <Card key={accessory.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle>{accessory.name}</CardTitle>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditFilament(filament)}>
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteFilament(filament.id)} className="text-destructive">
-                          Eliminar
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenAccessorySheet(accessory)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteAccessory(accessory.id)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Nivel de Stock</span>
-                  <span>{filament.stockLevel}g</span>
-                </div>
-                <Progress value={(filament.stockLevel / 1000) * 100} className="mt-1 h-2" />
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Costo por kg</span>
-                <span className="font-medium">
-                  {settings.currency}
-                  {filament.costPerKg.toFixed(2)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      {!isLoading && filaments?.length === 0 && (
-        <div className="col-span-full py-10 text-center text-muted-foreground">
-            No hay filamentos para mostrar.
-        </div>
-      )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Nivel de Stock</span><span>{accessory.stockLevel} unidades</span></div>
+                    <div className="flex justify-between items-center text-sm mt-2"><span className="text-muted-foreground">Costo por unidad</span><span className="font-medium">{settings.currency}{accessory.cost.toFixed(2)}</span></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {!isLoadingAccessories && accessories?.length === 0 && (
+            <div className="col-span-full py-10 text-center text-muted-foreground">No hay accesorios para mostrar.</div>
+          )}
+        </TabsContent>
+      </Tabs>
 
-      <Sheet open={isSheetOpen} onOpenChange={(isOpen) => { setIsSheetOpen(isOpen); if (!isOpen) setEditingFilament(null); }}>
+      <Sheet open={isFilamentSheetOpen} onOpenChange={(isOpen) => { setIsFilamentSheetOpen(isOpen); if (!isOpen) setEditingFilament(null); }}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>
-              {editingFilament ? "Editar Filamento" : "Añadir Nuevo Filamento"}
-            </SheetTitle>
-            <SheetDescription>
-              {editingFilament
-                ? "Actualiza los detalles de este filamento."
-                : "Rellena los detalles para el nuevo filamento."}
-            </SheetDescription>
+            <SheetTitle>{editingFilament ? "Editar Filamento" : "Añadir Nuevo Filamento"}</SheetTitle>
+            <SheetDescription>{editingFilament ? "Actualiza los detalles de este filamento." : "Rellena los detalles para el nuevo filamento."}</SheetDescription>
           </SheetHeader>
-          <form onSubmit={handleFormSubmit}>
+          <form onSubmit={handleFilamentFormSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Nombre</Label>
-                <Input id="name" name="name" defaultValue={editingFilament?.name} className="col-span-3" required />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="color" className="text-right">Color</Label>
-                <Input id="color" name="color" defaultValue={editingFilament?.color} className="col-span-3" required />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="stockLevel" className="text-right">Stock (g)</Label>
-                <Input id="stockLevel" name="stockLevel" type="number" defaultValue={editingFilament?.stockLevel} className="col-span-3" required />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="costPerKg" className="text-right">Costo por Kg</Label>
-                <Input id="costPerKg" name="costPerKg" type="number" step="0.01" defaultValue={editingFilament?.costPerKg} className="col-span-3" required />
-              </div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="name" className="text-right">Nombre</Label><Input id="name" name="name" defaultValue={editingFilament?.name} className="col-span-3" required /></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="color" className="text-right">Color</Label><Input id="color" name="color" defaultValue={editingFilament?.color} className="col-span-3" required /></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="stockLevel" className="text-right">Stock (g)</Label><Input id="stockLevel" name="stockLevel" type="number" defaultValue={editingFilament?.stockLevel} className="col-span-3" required /></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="costPerKg" className="text-right">Costo por Kg</Label><Input id="costPerKg" name="costPerKg" type="number" step="0.01" defaultValue={editingFilament?.costPerKg} className="col-span-3" required /></div>
             </div>
-            <SheetFooter>
-              <Button type="submit">{editingFilament ? "Guardar Cambios" : "Crear Filamento"}</Button>
-            </SheetFooter>
+            <SheetFooter><Button type="submit">{editingFilament ? "Guardar Cambios" : "Crear Filamento"}</Button></SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={isAccessorySheetOpen} onOpenChange={(isOpen) => { setIsAccessorySheetOpen(isOpen); if (!isOpen) setEditingAccessory(null); }}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editingAccessory ? "Editar Accesorio" : "Añadir Nuevo Accesorio"}</SheetTitle>
+            <SheetDescription>{editingAccessory ? "Actualiza los detalles de este accesorio." : "Rellena los detalles para el nuevo accesorio."}</SheetDescription>
+          </SheetHeader>
+          <form onSubmit={handleAccessoryFormSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="name" className="text-right">Nombre</Label><Input id="name" name="name" defaultValue={editingAccessory?.name} className="col-span-3" required /></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="stockLevel" className="text-right">Stock (unidades)</Label><Input id="stockLevel" name="stockLevel" type="number" defaultValue={editingAccessory?.stockLevel} className="col-span-3" required /></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="cost" className="text-right">Costo (por unidad)</Label><Input id="cost" name="cost" type="number" step="0.01" defaultValue={editingAccessory?.cost} className="col-span-3" required /></div>
+            </div>
+            <SheetFooter><Button type="submit">{editingAccessory ? "Guardar Cambios" : "Crear Accesorio"}</Button></SheetFooter>
           </form>
         </SheetContent>
       </Sheet>

@@ -7,6 +7,7 @@
  * - /clients: Manages customer information.
  * - /expenses: Tracks business expenses.
  * - /filaments: Manages 3D printing filament inventory.
+ * - /accessories: Manages accessory inventory.
  * - /quotes: Stores job quotes for clients.
  * - /settings: Contains global application configuration.
  *
@@ -85,6 +86,21 @@ service cloud.firestore {
      * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
      */
     match /filaments/{filamentId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+
+    /**
+     * @description Manages accessory inventory. Only authenticated users can add, view, or update accessory stock.
+     * @path /accessories/{accessoryId}
+     * @allow (update) An authenticated user updates the stock level of an accessory.
+     * @deny (list) An unauthenticated (anonymous) user tries to list the accessory inventory.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /accessories/{accessoryId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
