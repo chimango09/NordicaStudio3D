@@ -154,7 +154,7 @@ export default function QuotesPage() {
     
     if (totalCost > 0) {
         const finalPrice = totalCost * (1 + settings.profitMargin / 100);
-        const roundedPrice = Math.round(finalPrice / 100) * 100;
+        const roundedPrice = Math.ceil(finalPrice / 100) * 100;
         setCosts({ materialCost, accessoryCost, machineCost, electricityCost });
         setCalculatedPrice(roundedPrice);
     } else {
@@ -185,6 +185,11 @@ export default function QuotesPage() {
       date: new Date().toISOString(),
       ...costs,
     };
+    
+    if(quoteData.materials.length === 0 && quoteData.accessories.length === 0 && quoteData.printingTimeHours <= 0) {
+      return;
+    }
+
     addDocumentNonBlocking(quotesCollection, quoteData);
 
     quoteData.materials.forEach((mat) => {
@@ -273,7 +278,7 @@ export default function QuotesPage() {
                 <TableRow key={quote.id}>
                   <TableCell className="font-medium">{quote.clientName}</TableCell>
                   <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
-                  <TableCell><Badge variant={quote.status === 'Entregado' ? 'default' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge></TableCell>
+                  <TableCell><Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge></TableCell>
                   <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -350,7 +355,7 @@ export default function QuotesPage() {
                         <h4 className="font-medium">Desglose de Costos</h4>
                          <div className="grid gap-2 mt-2">
                             <h5 className="text-sm font-medium text-muted-foreground">Materiales</h5>
-                            {(selectedQuote.materials ?? []).map((mat, i) => {
+                            {(selectedQuote.materials || []).map((mat, i) => {
                                 const filament = filaments?.find(f => f.id === mat.filamentId);
                                 const cost = filament ? (filament.costPerKg/1000) * mat.grams : 0;
                                 return <div key={i} className="flex justify-between pl-2"><span className="text-muted-foreground">{filament?.name} ({mat.grams}g)</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
@@ -359,7 +364,7 @@ export default function QuotesPage() {
                          </div>
                          <div className="grid gap-2 mt-2">
                             <h5 className="text-sm font-medium text-muted-foreground">Accesorios</h5>
-                            {(selectedQuote.accessories ?? []).map((acc, i) => {
+                            {(selectedQuote.accessories || []).map((acc, i) => {
                                 const accessory = accessoriesData?.find(a => a.id === acc.accessoryId);
                                 const cost = accessory ? accessory.cost * acc.quantity : 0;
                                 return <div key={i} className="flex justify-between pl-2"><span className="text-muted-foreground">{accessory?.name} (x{acc.quantity})</span><span>{settings.currency}{cost.toFixed(2)}</span></div>

@@ -47,8 +47,8 @@ const settingsItem = {
 };
 
 const AppLogo = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-5 w-5 fill-primary-foreground">
-        <path d="M244.2,88.2,140.2,24.2a20,20,0,0,0-24.4,0L11.8,88.2a20,20,0,0,0,12.2,35.8H36v80a20,20,0,0,0,20,20h40a12,12,0,0,0,12-12v-48a12,12,0,0,1,24,0v48a12,12,0,0,0,12,12h40a20,20,0,0,0,20-20v-80h12a20,20,0,0,0,12.2-35.8ZM208,112H48a12,12,0,0,0-12,12v80H56a8,8,0,0,0,8-8V140a20,20,0,0,1,20-20h72a20,20,0,0,1,20,20v56a8,8,0,0,0,8,8h20V124A12,12,0,0,0,208,112ZM128,36,227.3,96H28.7Z"></path>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-6 w-6 text-primary">
+        <path fill="currentColor" d="M244.2,88.2,140.2,24.2a20,20,0,0,0-24.4,0L11.8,88.2a20,20,0,0,0,12.2,35.8H36v80a20,20,0,0,0,20,20h40a12,12,0,0,0,12-12v-48a12,12,0,0,1,24,0v48a12,12,0,0,0,12,12h40a20,20,0,0,0,20-20v-80h12a20,20,0,0,0,12.2-35.8ZM208,112H48a12,12,0,0,0-12,12v80H56a8,8,0,0,0,8-8V140a20,20,0,0,1,20-20h72a20,20,0,0,1,20,20v56a8,8,0,0,0,8,8h20V124A12,12,0,0,0,208,112ZM128,36,227.3,96H28.7Z"></path>
     </svg>
 );
 
@@ -105,26 +105,24 @@ export default function DashboardLayout({
   const desktopNav = (
     <aside
       className={cn(
-        "hidden md:flex flex-col border-r transition-all duration-300 ease-in-out",
+        "hidden md:flex flex-col border-r bg-card transition-all duration-300 ease-in-out",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
       <div className="flex h-16 items-center border-b px-4">
-        <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-                <AppLogo />
-            </div>
-           <span className={cn("text-lg font-semibold whitespace-nowrap transition-all duration-300", isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100")}>
-             Gestor de Impresión 3D
+        <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-lg overflow-hidden">
+            <AppLogo />
+           <span className={cn("whitespace-nowrap transition-all duration-300", isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-2")}>
+             3D Gestor
            </span>
         </Link>
       </div>
-      <nav className="flex-1 space-y-2 p-4">
+      <nav className="flex-1 space-y-1 p-2">
         {navItems.map((item) => (
           <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
         ))}
       </nav>
-      <div className="mt-auto space-y-2 p-4">
+      <div className="mt-auto space-y-1 p-2">
         <NavLink item={settingsItem} isCollapsed={isCollapsed} />
       </div>
     </aside>
@@ -138,20 +136,18 @@ export default function DashboardLayout({
               <span className="sr-only">Toggle Menu</span>
             </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-64 p-0 bg-card">
           <SheetHeader>
             <SheetTitle className="sr-only">Navegación</SheetTitle>
             <SheetDescription className="sr-only">Menú principal de la aplicación</SheetDescription>
           </SheetHeader>
           <div className="flex h-16 items-center border-b px-4">
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                    <AppLogo />
-                </div>
-                <span className="text-lg font-medium text-foreground">Gestor de Impresión 3D</span>
+              <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-lg">
+                <AppLogo />
+                <span className="ml-2">3D Gestor</span>
               </Link>
           </div>
-          <nav className="flex-1 space-y-2 p-4">
+          <nav className="flex-1 space-y-1 p-2">
               {navItems.map((item) => (
                   <Button key={item.href} asChild variant={pathname === item.href ? "secondary" : "ghost"} className="w-full justify-start">
                       <Link href={item.href}>
@@ -161,7 +157,7 @@ export default function DashboardLayout({
                   </Button>
               ))}
           </nav>
-          <div className="mt-auto space-y-2 p-4 border-t">
+          <div className="mt-auto space-y-1 p-2 border-t">
               <Button asChild variant={pathname === settingsItem.href ? "secondary" : "ghost"} className="w-full justify-start">
                   <Link href={settingsItem.href}>
                       <settingsItem.icon className="mr-4 h-5 w-5" />
@@ -177,7 +173,7 @@ export default function DashboardLayout({
     <div className="flex min-h-screen w-full bg-background">
       {desktopNav}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center border-b bg-card px-4 md:px-6">
+        <header className="flex h-16 shrink-0 items-center border-b bg-card px-4 md:px-6">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={toggleSidebar}>
               <PanelLeft className="h-6 w-6" />
