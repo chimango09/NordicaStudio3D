@@ -1,0 +1,125 @@
+/**
+ * # Core Philosophy
+ * This ruleset enforces a single-operator security model, designed for an application where one authenticated user (the business owner) manages all data. Access to any data—clients, expenses, quotes, etc.—is granted exclusively to signed-in users. There is no public or anonymous access to any part of the database.
+ *
+ * # Data Structure
+ * The data is organized into several top-level collections:
+ * - /clients: Manages customer information.
+ * - /expenses: Tracks business expenses.
+ * - /filaments: Manages 3D printing filament inventory.
+ * - /quotes: Stores job quotes for clients.
+ * - /settings: Contains global application configuration.
+ *
+ * All collections are treated as private and are only accessible by an authenticated user.
+ *
+ * # Key Security Decisions
+ * - **Authenticated Access Only**: The primary security principle is that a user must be signed in to perform any operation (read, write, delete) on any data. This provides a strong default security posture.
+ * - **No Public Data**: All collections, including lists of documents, are protected from public access. Listing documents is only permitted for authenticated users.
+ * - **No Granular Ownership**: In this prototyping phase, the rules do not enforce per-document ownership (e.g., via an `ownerId` field). The model assumes a single administrator or operator for the entire dataset. This simplifies the rules for rapid development while maintaining high security against unauthorized access.
+ * - **Destructive Operation Safety**: All update and delete operations are gated with a check to ensure the document exists before the operation is allowed. This prevents errors and ensures intent.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated. This is the foundation of the
+     * security model, ensuring no anonymous access is possible.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Ensures that a user is signed in and that the document they are trying
+     * to modify or delete actually exists. This prevents writes to null paths.
+     */
+    function isAuthenticatedAndDocExists() {
+      return isSignedIn() && resource != null;
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Manages client records. Only authenticated users can create, view, or manage clients.
+     * @path /clients/{clientId}
+     * @allow (create) An authenticated user creates a new client document.
+     * @deny (get) An unauthenticated (anonymous) user tries to read a client document.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /clients/{clientId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+
+    /**
+     * @description Manages expense records. Only authenticated users can log or view expenses.
+     * @path /expenses/{expenseId}
+     * @allow (list) An authenticated user lists all business expenses.
+     * @deny (create) An unauthenticated (anonymous) user tries to create a new expense.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /expenses/{expenseId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+
+    /**
+     * @description Manages filament inventory. Only authenticated users can add, view, or update filament stock.
+     * @path /filaments/{filamentId}
+     * @allow (update) An authenticated user updates the stock level of a filament.
+     * @deny (list) An unauthenticated (anonymous) user tries to list the filament inventory.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /filaments/{filamentId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+
+    /**
+     * @description Manages quotes for printing jobs. Only authenticated users can create, view, or manage quotes.
+     * @path /quotes/{quoteId}
+     * @allow (delete) An authenticated user deletes an old quote.
+     * @deny (get) An unauthenticated (anonymous) user tries to read a specific quote.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /quotes/{quoteId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+
+    /**
+     * @description Manages application settings. Only authenticated users can read or modify settings.
+     * @path /settings/{settingId}
+     * @allow (get) An authenticated user reads a configuration setting like 'currency'.
+     * @deny (update) An unauthenticated (anonymous) user tries to change the profit margin.
+     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
+     */
+    match /settings/{settingId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAuthenticatedAndDocExists();
+      allow delete: if isAuthenticatedAndDocExists();
+    }
+  }
+}

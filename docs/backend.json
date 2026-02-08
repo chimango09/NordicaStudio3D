@@ -1,0 +1,267 @@
+{
+  "entities": {
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client who orders 3D printed products.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the client.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the client."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the client."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense related to 3D printing, such as filament or accessories.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the expense.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the expense."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the expense."
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "amount"
+      ]
+    },
+    "Filament": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Filament",
+      "type": "object",
+      "description": "Represents a type of filament used for 3D printing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the filament."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the filament (e.g., PLA, ABS)."
+        },
+        "color": {
+          "type": "string",
+          "description": "Color of the filament."
+        },
+        "stockLevel": {
+          "type": "number",
+          "description": "Current stock level of the filament (e.g., in grams)."
+        },
+        "costPerKg": {
+          "type": "number",
+          "description": "Cost per kilogram of the filament."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "stockLevel",
+        "costPerKg"
+      ]
+    },
+    "Quote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Quote",
+      "type": "object",
+      "description": "Represents a quote for a 3D printing job.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the quote."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N Quote)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date the quote was created.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the print job."
+        },
+        "filamentId": {
+          "type": "string",
+          "description": "Reference to Filament. (Relationship: Filament 1:N Quote)"
+        },
+        "filamentUsedGrams": {
+          "type": "number",
+          "description": "Amount of filament used in grams."
+        },
+        "printingTimeHours": {
+          "type": "number",
+          "description": "Estimated printing time in hours."
+        },
+        "price": {
+          "type": "number",
+          "description": "Total price of the quote."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "date",
+        "filamentId",
+        "filamentUsedGrams",
+        "printingTimeHours",
+        "price"
+      ]
+    },
+    "Setting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Setting",
+      "type": "object",
+      "description": "Represents a configuration setting for the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the setting."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the setting (e.g., electricityCost, machineUsageCost, profitMargin, currency)."
+        },
+        "value": {
+          "type": "string",
+          "description": "Value of the setting. Stored as a string to accommodate different data types."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "value"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client information.  `clientId` is the document ID.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier for the client."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expense records. `expenseId` is the document ID.",
+          "params": [
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/filaments/{filamentId}",
+        "definition": {
+          "entityName": "Filament",
+          "schema": {
+            "$ref": "#/backend/entities/Filament"
+          },
+          "description": "Stores filament inventory information. `filamentId` is the document ID.",
+          "params": [
+            {
+              "name": "filamentId",
+              "description": "The unique identifier for the filament."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/quotes/{quoteId}",
+        "definition": {
+          "entityName": "Quote",
+          "schema": {
+            "$ref": "#/backend/entities/Quote"
+          },
+          "description": "Stores quotes for 3D printing jobs. Includes denormalized client data to enable Authorization Independence. `quoteId` is the document ID.",
+          "params": [
+            {
+              "name": "quoteId",
+              "description": "The unique identifier for the quote."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/settings/{settingId}",
+        "definition": {
+          "entityName": "Setting",
+          "schema": {
+            "$ref": "#/backend/entities/Setting"
+          },
+          "description": "Stores application settings. `settingId` is the document ID.",
+          "params": [
+            {
+              "name": "settingId",
+              "description": "The unique identifier for the setting."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage 3D printing operations, focusing on clients, expenses, filament inventory, quotes, and settings. It prioritizes Authorization Independence by denormalizing relevant data where necessary, enabling secure and efficient data access. Segregation is applied by storing different entities in separate collections, each with its own security rules. Path-based ownership is used where applicable, like in the case of settings. Membership maps are not explicitly used here, as authorization is primarily based on user roles or ownership of data.\n\n**Authorization Independence:** The structure avoids hierarchical authorization dependencies. For example, while quotes belong to clients, the client's information (if needed for authorization) would be denormalized within the quote document itself rather than relying on `get()` calls to the client document. This ensures that quote creation and modification can happen atomically without needing to read the client document.\n\n**QAPs Support:**\n*   Secure `list` operations are supported by structural segregation. Each collection can have its own security rules that determine who can list documents in that collection.  For example, only authenticated users are able to list filaments.\n\n*   The use of settings collection without user specific ownership simplifies the rules. The settings documents can be restricted to admin users only.\n\nThe use of these principles allow for a scalable and secure data structure for the 3D Print Manager application."
+  }
+}
