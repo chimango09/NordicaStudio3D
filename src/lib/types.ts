@@ -1,4 +1,5 @@
 export interface Client {
+  id: string;
   name: string;
   email?: string;
   phone?: string;
@@ -6,12 +7,14 @@ export interface Client {
 }
 
 export interface Expense {
+  id: string;
   date: string; 
   description: string;
   amount: number;
 }
 
 export interface Filament {
+  id: string;
   name: string;
   color: string;
   stockLevel: number; // in grams
@@ -19,6 +22,7 @@ export interface Filament {
 }
 
 export interface Quote {
+  id: string;
   clientId: string;
   clientName?: string; // Denormalized for display
   date: string; 
@@ -28,9 +32,13 @@ export interface Quote {
   printingTimeHours: number;
   price: number;
   status: 'Pendiente' | 'Imprimiendo' | 'Entregado';
+  materialCost: number;
+  machineCost: number;
+  electricityCost: number;
 }
 
 export interface Setting {
+    id: string;
     value: string;
 }
 

@@ -36,6 +36,14 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -60,6 +68,9 @@ import { useSettings } from "@/hooks/use-settings";
 import type { Quote, Client, Filament } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+
+type QuoteWithClientName = Quote & { clientName: string; id: string };
 
 export default function QuotesPage() {
   const firestore = useFirestore();
@@ -75,6 +86,9 @@ export default function QuotesPage() {
   const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+  const [selectedQuote, setSelectedQuote] = React.useState<QuoteWithClientName | null>(null);
+
   const [formValues, setFormValues] = React.useState({
     clientId: "",
     filamentId: "",
@@ -83,6 +97,11 @@ export default function QuotesPage() {
     description: ""
   });
   const [calculatedPrice, setCalculatedPrice] = React.useState(0);
+  const [costs, setCosts] = React.useState({
+    materialCost: 0,
+    machineCost: 0,
+    electricityCost: 0,
+  });
   
   const isLoading = isLoadingQuotes || isLoadingClients || isLoadingFilaments;
 
@@ -92,7 +111,7 @@ export default function QuotesPage() {
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
-      setFormValues(prev => ({...prev, [name]: value}));
+      setFormValues(prev => ({...prev, [name]: parseFloat(value) || value}));
   }
 
   React.useEffect(() => {
@@ -102,10 +121,11 @@ export default function QuotesPage() {
     if (filament && filamentUsedGrams > 0 && printingTimeHours > 0) {
       const materialCost = (filament.costPerKg / 1000) * filamentUsedGrams;
       const machineCost = settings.machineCost * printingTimeHours;
-      const electricityCost = settings.electricityCost * printingTimeHours * 0.2; // Simplified
+      const electricityCost = settings.electricityCost * printingTimeHours;
       
       const totalCost = materialCost + machineCost + electricityCost;
       const finalPrice = totalCost * (1 + settings.profitMargin / 100);
+      setCosts({ materialCost, machineCost, electricityCost });
       setCalculatedPrice(finalPrice);
     } else {
       setCalculatedPrice(0);
@@ -115,13 +135,12 @@ export default function QuotesPage() {
   const handleCreateQuote = () => {
     if (calculatedPrice <= 0) return;
 
-    const quoteData: Omit<Quote, 'id' | 'clientName'> = {
+    const quoteData = {
       ...formValues,
-      filamentUsedGrams: Number(formValues.filamentUsedGrams),
-      printingTimeHours: Number(formValues.printingTimeHours),
       price: calculatedPrice,
-      status: 'Pendiente',
+      status: 'Pendiente' as const,
       date: new Date().toISOString(),
+      ...costs
     };
     addDocumentNonBlocking(quotesCollection, quoteData);
     setIsSheetOpen(false);
@@ -132,6 +151,7 @@ export default function QuotesPage() {
         printingTimeHours: 0,
         description: ""
     });
+    setCosts({ materialCost: 0, machineCost: 0, electricityCost: 0 });
   }
 
   const handleDeleteQuote = (quoteId: string) => {
@@ -143,13 +163,27 @@ export default function QuotesPage() {
     const quoteDoc = doc(firestore, 'quotes', quoteId);
     setDocumentNonBlocking(quoteDoc, { status }, { merge: true });
   };
+  
+  const handleViewDetails = (quote: QuoteWithClientName) => {
+    setSelectedQuote(quote);
+    setIsDetailsOpen(true);
+  };
 
-  const quotes = React.useMemo(() => {
+  const quotes: QuoteWithClientName[] = React.useMemo(() => {
     return quotesData?.map(quote => ({
       ...quote,
+      id: quote.id,
       clientName: clients?.find(c => c.id === quote.clientId)?.name || 'N/A'
     })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
   }, [quotesData, clients])
+
+  const getFilamentForQuote = (quote: Quote) => {
+      return filaments?.find(f => f.id === quote.filamentId);
+  }
+  
+  const calculateTotalCost = (quote: Quote) => (quote.materialCost || 0) + (quote.machineCost || 0) + (quote.electricityCost || 0);
+  const calculateProfit = (quote: Quote) => quote.price - calculateTotalCost(quote);
+
 
   return (
     <>
@@ -216,7 +250,7 @@ export default function QuotesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem disabled>Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>
                                 <span>Cambiar Estado</span>
@@ -303,6 +337,65 @@ export default function QuotesPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent>
+            {selectedQuote && (
+                <>
+                <DialogHeader>
+                    <DialogTitle>Detalles de la Cotización</DialogTitle>
+                    <DialogDescription>
+                        Desglose de costos y ganancias para la cotización de {selectedQuote.clientName}.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div>
+                        <h4 className="font-medium">Resumen</h4>
+                        <p className="text-sm text-muted-foreground">{selectedQuote.description || "Sin descripción."}</p>
+                    </div>
+                    <Separator/>
+                    <div className="grid gap-2">
+                         <div className="flex justify-between">
+                            <span className="text-muted-foreground">Filamento</span>
+                            <span>{getFilamentForQuote(selectedQuote)?.name} ({getFilamentForQuote(selectedQuote)?.color})</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Precio de Venta</span>
+                            <span className="font-bold">{settings.currency}{selectedQuote.price.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <Separator/>
+                     <div>
+                        <h4 className="font-medium">Desglose de Costos</h4>
+                         <div className="grid gap-2 mt-2">
+                             <div className="flex justify-between">
+                                <span className="text-muted-foreground">Costo de Material</span>
+                                <span>{settings.currency}{(selectedQuote.materialCost || 0).toFixed(2)}</span>
+                            </div>
+                             <div className="flex justify-between">
+                                <span className="text-muted-foreground">Costo de Máquina</span>
+                                <span>{settings.currency}{(selectedQuote.machineCost || 0).toFixed(2)}</span>
+                            </div>
+                             <div className="flex justify-between">
+                                <span className="text-muted-foreground">Costo de Electricidad</span>
+                                <span>{settings.currency}{(selectedQuote.electricityCost || 0).toFixed(2)}</span>
+                            </div>
+                              <div className="flex justify-between font-medium mt-2 pt-2 border-t">
+                                <span>Costo Total</span>
+                                <span>{settings.currency}{calculateTotalCost(selectedQuote).toFixed(2)}</span>
+                            </div>
+                        </div>
+                     </div>
+                     <Separator/>
+                     <div className="flex justify-between text-lg font-bold text-primary">
+                        <span>Ganancia</span>
+                        <span>{settings.currency}{calculateProfit(selectedQuote).toFixed(2)}</span>
+                    </div>
+                </div>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

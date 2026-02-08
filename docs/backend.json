@@ -117,6 +117,18 @@
             "type": "string",
             "description": "The status of the quote.",
             "enum": ["Pendiente", "Imprimiendo", "Entregado"]
+        },
+        "materialCost": {
+            "type": "number",
+            "description": "Cost of the material for the job."
+        },
+        "machineCost": {
+            "type": "number",
+            "description": "Cost of machine usage for the job."
+        },
+        "electricityCost": {
+            "type": "number",
+            "description": "Cost of electricity for the job."
         }
       },
       "required": [
@@ -126,7 +138,10 @@
         "filamentUsedGrams",
         "printingTimeHours",
         "price",
-        "status"
+        "status",
+        "materialCost",
+        "machineCost",
+        "electricityCost"
       ]
     },
     "Setting": {

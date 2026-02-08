@@ -8,12 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Package, ReceiptText, Users } from "lucide-react";
+import { DollarSign, Package, ReceiptText, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useSettings } from '@/hooks/use-settings';
-import type { Quote, Expense, Client } from '@/lib/types';
+import type { Quote, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
@@ -25,45 +25,48 @@ export default function DashboardPage() {
 
   const expensesCollection = useMemoFirebase(() => collection(firestore, "expenses"), [firestore]);
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesCollection);
-
-  const clientsCollection = useMemoFirebase(() => collection(firestore, "clients"), [firestore]);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
   
-  const isLoading = isLoadingQuotes || isLoadingExpenses || isLoadingClients;
+  const isLoading = isLoadingQuotes || isLoadingExpenses;
 
   const metrics = React.useMemo(() => {
-    const totalRevenue = quotes?.filter(q => q.status === 'Entregado').reduce((sum, q) => sum + q.price, 0) || 0;
-    const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
-    const totalProfit = totalRevenue - totalExpenses;
-    const activeQuotes = quotes?.filter(q => q.status === 'Imprimiendo' || q.status === 'Pendiente').length || 0;
+    const deliveredQuotes = quotes?.filter(q => q.status === 'Entregado') || [];
+    const totalRevenue = deliveredQuotes.reduce((sum, q) => sum + q.price, 0);
+    
+    const totalProductionCost = deliveredQuotes.reduce((sum, q) => {
+      const cost = (q.materialCost || 0) + (q.machineCost || 0) + (q.electricityCost || 0);
+      return sum + cost;
+    }, 0);
+
+    const totalOperationalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
+    const netProfit = totalRevenue - totalProductionCost - totalOperationalExpenses;
 
     return [
       {
         icon: DollarSign,
         title: "Ingresos Totales",
         value: `${settings.currency} ${totalRevenue.toFixed(2)}`,
-        description: "Basado en cotizaciones completadas.",
+        description: "Basado en cotizaciones entregadas.",
+      },
+      {
+        icon: Package,
+        title: "Costos de Producción",
+        value: `${settings.currency} ${totalProductionCost.toFixed(2)}`,
+        description: "Costo de cotizaciones entregadas.",
       },
       {
         icon: ReceiptText,
-        title: "Gastos Totales",
-        value: `${settings.currency} ${totalExpenses.toFixed(2)}`,
-        description: "Todos los gastos registrados.",
+        title: "Gastos Operativos",
+        value: `${settings.currency} ${totalOperationalExpenses.toFixed(2)}`,
+        description: "Todos los gastos operativos registrados.",
       },
       {
-        icon: DollarSign,
-        title: "Beneficio Total",
-        value: `${settings.currency} ${totalProfit.toFixed(2)}`,
-        description: "Ingresos menos gastos.",
-      },
-      {
-        icon: Users,
-        title: "Clientes Totales",
-        value: clients?.length || 0,
-        description: "Número total de clientes.",
+        icon: TrendingUp,
+        title: "Ganancia Neta",
+        value: `${settings.currency} ${netProfit.toFixed(2)}`,
+        description: "Ingresos - costos - gastos.",
       },
     ];
-  }, [quotes, expenses, clients, settings.currency]);
+  }, [quotes, expenses, settings.currency]);
 
 
   return (
