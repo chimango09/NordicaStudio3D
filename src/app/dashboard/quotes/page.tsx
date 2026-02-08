@@ -190,11 +190,11 @@ export default function QuotesPage() {
   }
 
   const handleDeleteQuote = (quote: Quote) => {
-    quote.materials.forEach(mat => {
+    (quote.materials ?? []).forEach(mat => {
         const filamentDoc = doc(firestore, "filaments", mat.filamentId);
         updateDocumentNonBlocking(filamentDoc, { stockLevel: increment(mat.grams) });
     });
-    quote.accessories.forEach(acc => {
+    (quote.accessories ?? []).forEach(acc => {
         const accessoryDoc = doc(firestore, "accessories", acc.accessoryId);
         updateDocumentNonBlocking(accessoryDoc, { stockLevel: increment(acc.quantity) });
     });
@@ -338,7 +338,7 @@ export default function QuotesPage() {
                         <h4 className="font-medium">Desglose de Costos</h4>
                          <div className="grid gap-2 mt-2">
                             <h5 className="text-sm font-medium text-muted-foreground">Materiales</h5>
-                            {selectedQuote.materials.map((mat, i) => {
+                            {(selectedQuote.materials ?? []).map((mat, i) => {
                                 const filament = filaments?.find(f => f.id === mat.filamentId);
                                 const cost = filament ? (filament.costPerKg/1000) * mat.grams : 0;
                                 return <div key={i} className="flex justify-between pl-2"><span className="text-muted-foreground">{filament?.name} ({mat.grams}g)</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
@@ -347,7 +347,7 @@ export default function QuotesPage() {
                          </div>
                          <div className="grid gap-2 mt-2">
                             <h5 className="text-sm font-medium text-muted-foreground">Accesorios</h5>
-                            {selectedQuote.accessories.map((acc, i) => {
+                            {(selectedQuote.accessories ?? []).map((acc, i) => {
                                 const accessory = accessoriesData?.find(a => a.id === acc.accessoryId);
                                 const cost = accessory ? accessory.cost * acc.quantity : 0;
                                 return <div key={i} className="flex justify-between pl-2"><span className="text-muted-foreground">{accessory?.name} (x{acc.quantity})</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
