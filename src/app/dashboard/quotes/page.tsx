@@ -328,14 +328,27 @@ export default function QuotesPage() {
         didDrawPage: (data: any) => {
             let finalY = data.cursor.y;
             
-            // TOTAL
+            // --- Totals Section ---
+            const totalsStartY = finalY + 15;
+            const totalsHeight = 18;
+            const totalsWidth = 75;
+            const totalsX = 190 - totalsWidth; 
+
+            doc.setFillColor(241, 245, 249);
+            doc.rect(totalsX, totalsStartY, totalsWidth, totalsHeight, 'F');
+            
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.setFillColor(241, 245, 249);
-            doc.rect(130, finalY + 15, 60, 10, 'F');
-            doc.text('PRECIO FINAL:', 135, finalY + 21.5);
-            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, finalY + 21.5, { align: 'right' });
-            finalY += 35;
+            doc.text('PRECIO FINAL:', totalsX + 5, totalsStartY + 7);
+            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, totalsStartY + 7, { align: 'right' });
+            
+            const downPayment = quote.price * 0.5;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Anticipo (50%):', totalsX + 5, totalsStartY + 14);
+            doc.text(`${settings.currency}${downPayment.toFixed(2)}`, 190, totalsStartY + 14, { align: 'right' });
+
+            finalY = totalsStartY + totalsHeight + 10;
 
             // --------------------------------
             // 💰 CONDICIONES DE PAGO
@@ -344,7 +357,7 @@ export default function QuotesPage() {
             doc.setFont('helvetica', 'bold');
             doc.text('CONDICIONES DE PAGO:', 20, finalY);
             doc.setFont('helvetica', 'normal');
-            const paymentConditions = "El inicio de la impresión se realizará únicamente una vez abonado el 50% del valor total de la pieza.\nEl 50% restante deberá abonarse al momento de la entrega del producto.";
+            const paymentConditions = "El inicio de la impresión se realizará únicamente una vez abonado el anticipo del 50%.\nEl 50% restante deberá abonarse al momento de la entrega del producto.";
             const splitPayment = doc.splitTextToSize(paymentConditions, 170);
             doc.text(splitPayment, 20, finalY + 7);
             finalY += splitPayment.length * 5 + 10;
