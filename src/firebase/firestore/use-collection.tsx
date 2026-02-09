@@ -56,8 +56,6 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  const queryPath = (targetRefOrQuery as CollectionReference)?.path;
-
   useEffect(() => {
     if (!targetRefOrQuery) {
       setData(null);
@@ -103,7 +101,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [queryPath]); // Re-run if the query path changes.
+  }, [targetRefOrQuery]); // Re-run if the query object itself changes.
 
   return { data, isLoading, error };
 }
