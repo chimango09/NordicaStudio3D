@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,6 +20,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useUser } from "@/firebase";
 import { generateExcelBackup } from "@/lib/backup";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const settingsSchema = z.object({
@@ -35,6 +35,7 @@ const settingsSchema = z.object({
   printerConsumptionWatts: z.coerce.number().min(0, "El consumo debe ser no negativo."),
   profitMargin: z.coerce.number().min(0, "El margen debe ser no negativo."),
   currency: z.string().min(1, "El símbolo de la moneda es obligatorio."),
+  backupReminderDays: z.coerce.number().min(0, "Debe ser no negativo."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -52,6 +53,7 @@ export default function SettingsPage() {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -97,6 +99,7 @@ export default function SettingsPage() {
         title: "Copia de Seguridad Generada",
         description: "La descarga de tu archivo Excel ha comenzado.",
       });
+      localStorage.setItem('lastBackupDate', new Date().toISOString());
     } catch (e: any) {
       console.error("Failed to generate Excel backup:", e);
       toast({
@@ -163,133 +166,174 @@ export default function SettingsPage() {
         description="Configura costos, márgenes de beneficio y otros ajustes de la aplicación."
       />
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Datos de la Empresa</CardTitle>
-            <CardDescription>
-              Configura la información de tu empresa que aparecerá en las cotizaciones.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="companyName">Nombre del Emprendimiento</Label>
-              <Input id="companyName" {...register("companyName")} />
-              {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="companyResponsible">Nombre del Responsable</Label>
-              <Input id="companyResponsible" {...register("companyResponsible")} />
-              {errors.companyResponsible && <p className="text-sm text-destructive">{errors.companyResponsible.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="companyPhone">Teléfono de Contacto</Label>
-              <Input id="companyPhone" {...register("companyPhone")} />
-              {errors.companyPhone && <p className="text-sm text-destructive">{errors.companyPhone.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="companyEmail">Email</Label>
-              <Input id="companyEmail" type="email" {...register("companyEmail")} />
-              {errors.companyEmail && <p className="text-sm text-destructive">{errors.companyEmail.message}</p>}
-            </div>
-            <div className="grid gap-2 sm:col-span-2">
-              <Label htmlFor="companyLocation">Ciudad y País</Label>
-              <Input id="companyLocation" {...register("companyLocation")} />
-              {errors.companyLocation && <p className="text-sm text-destructive">{errors.companyLocation.message}</p>}
-            </div>
-            <div className="grid gap-2 sm:col-span-2">
-                <Label htmlFor="companyLogo">Logo de la Empresa</Label>
-                <Input id="companyLogo" type="file" accept="image/png, image/jpeg" onChange={handleLogoChange} className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"/>
-                {companyLogoValue && (
-                    <div className="mt-2 flex items-center gap-4">
-                        <img src={companyLogoValue} alt="Previsualización del logo" className="h-20 w-auto object-contain border p-1 rounded-md bg-muted/30" />
-                        <Button variant="ghost" size="sm" onClick={() => setValue('companyLogo', '', { shouldDirty: true })}>Eliminar logo</Button>
-                    </div>
+        <div className="space-y-6">
+            <Card>
+            <CardHeader>
+                <CardTitle>Datos de la Empresa</CardTitle>
+                <CardDescription>
+                Configura la información de tu empresa que aparecerá en las cotizaciones.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                <Label htmlFor="companyName">Nombre del Emprendimiento</Label>
+                <Input id="companyName" {...register("companyName")} />
+                {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="companyResponsible">Nombre del Responsable</Label>
+                <Input id="companyResponsible" {...register("companyResponsible")} />
+                {errors.companyResponsible && <p className="text-sm text-destructive">{errors.companyResponsible.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="companyPhone">Teléfono de Contacto</Label>
+                <Input id="companyPhone" {...register("companyPhone")} />
+                {errors.companyPhone && <p className="text-sm text-destructive">{errors.companyPhone.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="companyEmail">Email</Label>
+                <Input id="companyEmail" type="email" {...register("companyEmail")} />
+                {errors.companyEmail && <p className="text-sm text-destructive">{errors.companyEmail.message}</p>}
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="companyLocation">Ciudad y País</Label>
+                <Input id="companyLocation" {...register("companyLocation")} />
+                {errors.companyLocation && <p className="text-sm text-destructive">{errors.companyLocation.message}</p>}
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                    <Label htmlFor="companyLogo">Logo de la Empresa</Label>
+                    <Input id="companyLogo" type="file" accept="image/png, image/jpeg" onChange={handleLogoChange} className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"/>
+                    {companyLogoValue && (
+                        <div className="mt-2 flex items-center gap-4">
+                            <img src={companyLogoValue} alt="Previsualización del logo" className="h-20 w-auto object-contain border p-1 rounded-md bg-muted/30" />
+                            <Button variant="ghost" size="sm" onClick={() => setValue('companyLogo', '', { shouldDirty: true })}>Eliminar logo</Button>
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+            </Card>
+
+            <Card>
+            <CardHeader>
+                <CardTitle>Configuración de Costos</CardTitle>
+                <CardDescription>
+                Establece los costos utilizados para calcular los precios de las cotizaciones.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                <Label htmlFor="electricityCost">Costo de Electricidad (por kWh)</Label>
+                <Input
+                    id="electricityCost"
+                    type="number"
+                    step="0.01"
+                    {...register("electricityCost")}
+                />
+                {errors.electricityCost && (
+                    <p className="text-sm text-destructive">{errors.electricityCost.message}</p>
                 )}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="printerConsumptionWatts">Consumo de Impresora (Watts)</Label>
+                <Input
+                    id="printerConsumptionWatts"
+                    type="number"
+                    step="1"
+                    {...register("printerConsumptionWatts")}
+                />
+                {errors.printerConsumptionWatts && (
+                    <p className="text-sm text-destructive">{errors.printerConsumptionWatts.message}</p>
+                )}
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="machineCost">Costo de Uso de Máquina (por hora)</Label>
+                <Input
+                    id="machineCost"
+                    type="number"
+                    step="0.01"
+                    {...register("machineCost")}
+                />
+                {errors.machineCost && (
+                    <p className="text-sm text-destructive">{errors.machineCost.message}</p>
+                )}
+                </div>
+            </CardContent>
+            </Card>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Configuración de Costos</CardTitle>
-            <CardDescription>
-              Establece los costos utilizados para calcular los precios de las cotizaciones.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="electricityCost">Costo de Electricidad (por kWh)</Label>
-              <Input
-                id="electricityCost"
-                type="number"
-                step="0.01"
-                {...register("electricityCost")}
-              />
-              {errors.electricityCost && (
-                <p className="text-sm text-destructive">{errors.electricityCost.message}</p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="printerConsumptionWatts">Consumo de Impresora (Watts)</Label>
-              <Input
-                id="printerConsumptionWatts"
-                type="number"
-                step="1"
-                {...register("printerConsumptionWatts")}
-              />
-              {errors.printerConsumptionWatts && (
-                <p className="text-sm text-destructive">{errors.printerConsumptionWatts.message}</p>
-              )}
-            </div>
-            <div className="grid gap-2 sm:col-span-2">
-              <Label htmlFor="machineCost">Costo de Uso de Máquina (por hora)</Label>
-              <Input
-                id="machineCost"
-                type="number"
-                step="0.01"
-                {...register("machineCost")}
-              />
-               {errors.machineCost && (
-                <p className="text-sm text-destructive">{errors.machineCost.message}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+            <CardHeader>
+                <CardTitle>Configuración Financiera</CardTitle>
+                <CardDescription>
+                Gestiona los márgenes de beneficio y la configuración de la moneda.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                <Label htmlFor="profitMargin">Margen de Beneficio Predeterminado (%)</Label>
+                <Input
+                    id="profitMargin"
+                    type="number"
+                    step="1"
+                    {...register("profitMargin")}
+                />
+                {errors.profitMargin && (
+                    <p className="text-sm text-destructive">{errors.profitMargin.message}</p>
+                )}
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="currency">Símbolo de Moneda</Label>
+                <Input id="currency" {...register("currency")} />
+                {errors.currency && (
+                    <p className="text-sm text-destructive">{errors.currency.message}</p>
+                )}
+                </div>
+            </CardContent>
+            </Card>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Configuración Financiera</CardTitle>
-            <CardDescription>
-              Gestiona los márgenes de beneficio y la configuración de la moneda.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="profitMargin">Margen de Beneficio Predeterminado (%)</Label>
-              <Input
-                id="profitMargin"
-                type="number"
-                step="1"
-                {...register("profitMargin")}
-              />
-               {errors.profitMargin && (
-                <p className="text-sm text-destructive">{errors.profitMargin.message}</p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="currency">Símbolo de Moneda</Label>
-              <Input id="currency" {...register("currency")} />
-              {errors.currency && (
-                <p className="text-sm text-destructive">{errors.currency.message}</p>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter className="border-t px-6 py-4">
+            <Card>
+                <CardHeader>
+                <CardTitle>Notificaciones</CardTitle>
+                <CardDescription>
+                    Configura recordatorios para mantener tu información segura.
+                </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-2">
+                    <Label htmlFor="backupReminderDays">Recordatorio de copia de seguridad</Label>
+                    <Controller
+                        name="backupReminderDays"
+                        control={control}
+                        render={({ field }) => (
+                            <Select
+                                value={String(field.value)}
+                                onValueChange={(value) => field.onChange(Number(value))}
+                            >
+                                <SelectTrigger className="w-[240px]">
+                                    <SelectValue placeholder="Frecuencia" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="0">Nunca</SelectItem>
+                                    <SelectItem value="7">Cada 7 días</SelectItem>
+                                    <SelectItem value="15">Cada 15 días</SelectItem>
+                                    <SelectItem value="30">Cada 30 días</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        Te mostraremos una notificación si no has hecho un backup en el período seleccionado.
+                    </p>
+                    {errors.backupReminderDays && <p className="text-sm text-destructive">{errors.backupReminderDays.message}</p>}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+        
+        <div className="border-t mt-6 pt-6 flex justify-start">
             <Button type="submit" disabled={isSubmitting || !isDirty}>
-              {isSubmitting ? "Guardando..." : "Guardar Configuración"}
+                {isSubmitting ? "Guardando..." : "Guardar toda la Configuración"}
             </Button>
-          </CardFooter>
-        </Card>
+        </div>
       </form>
 
       <Card className="mt-6">

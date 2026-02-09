@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: Settings = {
   companyEmail: 'contacto@nordica3d.com',
   companyLocation: 'Buenos Aires, Argentina',
   companyLogo: '',
+  backupReminderDays: 7,
 };
 
 export function useSettings() {

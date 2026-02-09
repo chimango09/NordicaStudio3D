@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Bell,
   Boxes,
   Calculator,
   KeyRound,
@@ -58,6 +59,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from '@/hooks/use-settings';
 
 
 const navItems = [
@@ -155,6 +157,28 @@ export default function DashboardLayout({
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const { toast } = useToast();
+  const { settings, isLoading: isLoadingSettings } = useSettings();
+  const [showBackupReminder, setShowBackupReminder] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isLoadingSettings || !settings || settings.backupReminderDays === 0) {
+      setShowBackupReminder(false);
+      return;
+    }
+
+    const lastBackupDateStr = localStorage.getItem('lastBackupDate');
+    if (!lastBackupDateStr) {
+      setShowBackupReminder(true);
+      return;
+    }
+
+    const lastBackupDate = new Date(lastBackupDateStr);
+    const today = new Date();
+    const daysSinceLastBackup = (today.getTime() - lastBackupDate.getTime()) / (1000 * 3600 * 24);
+
+    setShowBackupReminder(daysSinceLastBackup > settings.backupReminderDays);
+
+  }, [settings, isLoadingSettings, pathname]);
 
   const {
     register,
@@ -357,6 +381,33 @@ export default function DashboardLayout({
               {mobileNav}
             </div>
             <div className="ml-auto flex items-center gap-4">
+               <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full relative">
+                        <Bell className="h-5 w-5" />
+                        {showBackupReminder && (
+                            <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-destructive flex" />
+                        )}
+                        <span className="sr-only">Notificaciones</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                    <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {showBackupReminder && settings ? (
+                        <DropdownMenuItem asChild className="cursor-pointer !p-0">
+                            <Link href="/dashboard/settings" className="flex flex-col items-start gap-1 p-2">
+                                <p className="font-medium">Recordatorio de copia de seguridad</p>
+                                <p className="text-xs text-muted-foreground whitespace-normal">Ha pasado más de {settings.backupReminderDays} días desde tu último backup.</p>
+                            </Link>
+                        </DropdownMenuItem>
+                    ) : (
+                        <div className="text-sm text-muted-foreground text-center p-4">
+                            No hay notificaciones nuevas.
+                        </div>
+                    )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">

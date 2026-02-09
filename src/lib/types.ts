@@ -73,6 +73,7 @@ export interface Settings {
     companyEmail: string;
     companyLocation: string;
     companyLogo?: string;
+    backupReminderDays: number;
 }
 
 export interface TrashItem {
