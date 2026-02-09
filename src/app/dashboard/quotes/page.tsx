@@ -3,6 +3,7 @@
 import * as React from "react";
 import { MoreHorizontal, PlusCircle, Trash2, FileDown } from "lucide-react";
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import {
   Table,
   TableBody,
@@ -44,7 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,6 +76,14 @@ type QuoteWithClientName = Quote & { clientName: string; id: string };
 
 type FormMaterial = QuoteMaterial & { key: number };
 type FormAccessory = QuoteAccessory & { key: number };
+
+// TypeScript declaration for the autoTable plugin
+declare module 'jspdf' {
+    interface jsPDF {
+      autoTable: (options: any) => jsPDF;
+    }
+}
+
 
 export default function QuotesPage() {
   const firestore = useFirestore();
@@ -247,62 +255,162 @@ export default function QuotesPage() {
 
   const handleDownloadPdf = (quote: QuoteWithClientName) => {
     const doc = new jsPDF();
-    
-    // Logo and Title
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text("Nórdica Studio 3D", 105, 25, { align: "center" });
+    const client = clients?.find(c => c.id === quote.clientId);
 
-    doc.setFontSize(14);
+    // --------------------------------
+    // 📌 DATOS DEL EMISOR
+    // --------------------------------
+    const emitterName = "Nórdica Studio 3D";
+    const emitterResponsible = "Equipo Nórdica Studio";
+    const emitterPhone = "+54 9 11 1234-5678"; // Placeholder
+    const emitterEmail = "contacto@nordica3d.com"; // Placeholder
+    const emitterLocation = "Buenos Aires, Argentina"; // Placeholder
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text(emitterName, 20, 20);
+
     doc.setFont("helvetica", "normal");
-    doc.text("Cotización", 105, 35, { align: "center" });
+    doc.setFontSize(10);
+    doc.text(`Responsable: ${emitterResponsible}`, 20, 28);
+    doc.text(`Tel: ${emitterPhone}`, 20, 33);
+    doc.text(`Email: ${emitterEmail}`, 20, 38);
+    doc.text(emitterLocation, 20, 43);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("COTIZACIÓN", 190, 20, { align: 'right' });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Número: ${quote.id.substring(0, 8).toUpperCase()}`, 190, 27, { align: 'right' });
+    doc.text(`Fecha: ${new Date(quote.date).toLocaleDateString()}`, 190, 34, { align: 'right' });
 
     doc.setLineWidth(0.5);
-    doc.line(20, 45, 190, 45);
+    doc.line(20, 50, 190, 50);
 
-    // Date
+    // --------------------------------
+    // 👤 DATOS DEL CLIENTE
+    // --------------------------------
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date(quote.date).toLocaleDateString()}`, 190, 55, { align: 'right' });
-
-    // Client Info
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Cliente:", 20, 65);
+    doc.text("CLIENTE:", 20, 60);
     doc.setFont("helvetica", "normal");
-    doc.text(quote.clientName, 20, 72);
+    doc.text(client?.name || 'N/A', 20, 67);
+    if (client?.phone) doc.text(`Teléfono: ${client.phone}`, 20, 72);
 
-    doc.line(20, 85, 190, 85);
+    // --------------------------------
+    // 🧾 DETALLE DE LA PIEZA / SERVICIO
+    // --------------------------------
+    const tableBody = [];
+    const printingServiceCost = (quote.machineCost || 0) + (quote.electricityCost || 0);
+    const totalCost = calculateTotalCost(quote);
+    const profitAmount = quote.price - totalCost;
 
-    // Table Header
-    doc.setFont("helvetica", "bold");
-    doc.text("Descripción", 20, 92);
-    doc.text("Total", 190, 92, { align: "right" });
+    tableBody.push([
+      { content: `Descripción: ${quote.description || 'Trabajo de impresión 3D'}`, colSpan: 3, styles: { fontStyle: 'bold' } }
+    ]);
     
-    doc.line(20, 95, 190, 95);
-
-    // Table Body
-    doc.setFont("helvetica", "normal");
-    const description = quote.description || "Trabajo de impresión 3D";
-    const priceText = `${settings.currency}${quote.price.toFixed(2)}`;
-
-    const splitDescription = doc.splitTextToSize(description, 130);
-    let yPosition = 102;
-    doc.text(splitDescription, 20, yPosition);
-
-    doc.text(priceText, 190, yPosition, { align: "right" });
+    // Materials
+    (quote.materials || []).forEach(mat => {
+        const filament = filaments?.find(f => f.id === mat.filamentId);
+        const materialCost = filament ? (filament.costPerKg / 1000) * mat.grams : 0;
+        tableBody.push([
+            `Material / Filamento: ${filament?.name || ''} ${filament?.color || ''}`,
+            `${mat.grams.toFixed(1)}g`,
+            `${settings.currency}${materialCost.toFixed(2)}`
+        ]);
+    });
     
-    const descriptionHeight = splitDescription.length * 5; 
-    yPosition += descriptionHeight + 5;
+    // Printing service
+    if (printingServiceCost > 0) {
+        tableBody.push([
+            'Servicio de Impresión',
+            `${quote.printingTimeHours} hs`,
+            `${settings.currency}${printingServiceCost.toFixed(2)}`
+        ]);
+    }
+    
+    tableBody.push([
+        { content: 'Subtotal', styles: { fontStyle: 'bold' } },
+        '',
+        { content: `${settings.currency}${totalCost.toFixed(2)}`, styles: { halign: 'right' } }
+    ]);
+    tableBody.push([
+        { content: `Porcentaje de Ganancia Aplicado (${settings.profitMargin}%)`, styles: { fontStyle: 'bold' } },
+        '',
+        { content: `${settings.currency}${profitAmount.toFixed(2)}`, styles: { halign: 'right' } }
+    ]);
 
+    doc.autoTable({
+        startY: 80,
+        head: [['Descripción', 'Cantidad', 'Precio']],
+        body: tableBody,
+        theme: 'grid',
+        headStyles: { fillColor: [241, 245, 249], textColor: [23, 23, 23], fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: {
+            0: { cellWidth: 120 },
+            1: { cellWidth: 25, halign: 'center' },
+            2: { cellWidth: 25, halign: 'right' },
+        },
+        didDrawPage: (data: any) => {
+            let finalY = data.cursor.y;
+            
+            // TOTAL
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setFillColor(241, 245, 249);
+            doc.rect(130, finalY + 5, 60, 10, 'F');
+            doc.text('PRECIO FINAL:', 135, finalY + 11.5);
+            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, finalY + 11.5, { align: 'right' });
+            finalY += 25;
 
-    doc.line(20, yPosition, 190, yPosition);
+            // --------------------------------
+            // 💰 CONDICIONES DE PAGO
+            // --------------------------------
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CONDICIONES DE PAGO:', 20, finalY);
+            doc.setFont('helvetica', 'normal');
+            const paymentConditions = "El inicio de la impresión se realizará únicamente una vez abonado el 50% del valor total de la pieza.\nEl 50% restante deberá abonarse al momento de la entrega del producto.";
+            const splitPayment = doc.splitTextToSize(paymentConditions, 170);
+            doc.text(splitPayment, 20, finalY + 7);
+            finalY += splitPayment.length * 5 + 10;
+            
+            // --------------------------------
+            // 📜 CONDICIONES GENERALES Y ACLARACIONES
+            // --------------------------------
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CONDICIONES GENERALES Y ACLARACIONES:', 20, finalY);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            const conditions = [
+                '• El precio corresponde exclusivamente a la pieza detallada en esta cotización.',
+                '• No se realizarán modificaciones de diseño una vez iniciada la impresión.',
+                '• El tiempo de entrega es estimado y puede variar según disponibilidad y complejidad de la impresión.',
+                '• En caso de cancelación por parte del cliente luego de iniciado el proceso de impresión, el anticipo no será reembolsable.',
+                '• El producto final puede presentar leves variaciones propias del proceso de impresión 3D.',
+                '• La cotización tiene una validez de 7 días corridos desde la fecha de emisión.',
+            ];
+            const splitConditions = doc.splitTextToSize(conditions.join("\n"), 170);
+            doc.text(splitConditions, 20, finalY + 7);
 
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("TOTAL:", 150, yPosition + 10, { align: "right" });
-    doc.text(priceText, 190, yPosition + 10, { align: "right" });
+            // --------------------------------
+            // 📐 FOOTER
+            // --------------------------------
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                const footerText = "Documento generado automáticamente. No válido como factura fiscal.";
+                doc.text(footerText, 105, 285, { align: 'center' });
+            }
+        },
+    });
 
-    doc.save(`Cotizacion-${quote.clientName.replace(/\s+/g, '_')}-${quote.id.substring(0, 5)}.pdf`);
+    const date = new Date(quote.date).toISOString().split('T')[0];
+    doc.save(`cotizacion_${quote.clientName.replace(/\s+/g, '_')}_${date}.pdf`);
   };
 
   return (
