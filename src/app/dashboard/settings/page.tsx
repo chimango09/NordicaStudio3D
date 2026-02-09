@@ -21,6 +21,11 @@ import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const settingsSchema = z.object({
+  companyName: z.string().min(1, "El nombre es obligatorio."),
+  companyResponsible: z.string().min(1, "El responsable es obligatorio."),
+  companyPhone: z.string().min(1, "El teléfono es obligatorio."),
+  companyEmail: z.string().email("Email no válido."),
+  companyLocation: z.string().min(1, "La ubicación es obligatoria."),
   electricityCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   machineCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   printerConsumptionWatts: z.coerce.number().min(0, "El consumo debe ser no negativo."),
@@ -115,12 +120,48 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
+            <CardTitle>Datos de la Empresa</CardTitle>
+            <CardDescription>
+              Configura la información de tu empresa que aparecerá en las cotizaciones.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="companyName">Nombre del Emprendimiento</Label>
+              <Input id="companyName" {...register("companyName")} />
+              {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="companyResponsible">Nombre del Responsable</Label>
+              <Input id="companyResponsible" {...register("companyResponsible")} />
+              {errors.companyResponsible && <p className="text-sm text-destructive">{errors.companyResponsible.message}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="companyPhone">Teléfono de Contacto</Label>
+              <Input id="companyPhone" {...register("companyPhone")} />
+              {errors.companyPhone && <p className="text-sm text-destructive">{errors.companyPhone.message}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="companyEmail">Email</Label>
+              <Input id="companyEmail" type="email" {...register("companyEmail")} />
+              {errors.companyEmail && <p className="text-sm text-destructive">{errors.companyEmail.message}</p>}
+            </div>
+            <div className="grid gap-2 sm:col-span-2">
+              <Label htmlFor="companyLocation">Ciudad y País</Label>
+              <Input id="companyLocation" {...register("companyLocation")} />
+              {errors.companyLocation && <p className="text-sm text-destructive">{errors.companyLocation.message}</p>}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
             <CardTitle>Configuración de Costos</CardTitle>
             <CardDescription>
               Establece los costos utilizados para calcular los precios de las cotizaciones.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="electricityCost">Costo de Electricidad (por kWh)</Label>
               <Input
@@ -145,7 +186,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-destructive">{errors.printerConsumptionWatts.message}</p>
               )}
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 sm:col-span-2">
               <Label htmlFor="machineCost">Costo de Uso de Máquina (por hora)</Label>
               <Input
                 id="machineCost"
@@ -167,7 +208,7 @@ export default function SettingsPage() {
               Gestiona los márgenes de beneficio y la configuración de la moneda.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="profitMargin">Margen de Beneficio Predeterminado (%)</Label>
               <Input

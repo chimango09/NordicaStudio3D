@@ -260,11 +260,11 @@ export default function QuotesPage() {
     // --------------------------------
     // 📌 DATOS DEL EMISOR
     // --------------------------------
-    const emitterName = "Nórdica Studio 3D";
-    const emitterResponsible = "Equipo Nórdica Studio";
-    const emitterPhone = "+54 9 11 1234-5678"; // Placeholder
-    const emitterEmail = "contacto@nordica3d.com"; // Placeholder
-    const emitterLocation = "Buenos Aires, Argentina"; // Placeholder
+    const emitterName = settings.companyName;
+    const emitterResponsible = settings.companyResponsible;
+    const emitterPhone = settings.companyPhone;
+    const emitterEmail = settings.companyEmail;
+    const emitterLocation = settings.companyLocation;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
@@ -360,10 +360,10 @@ export default function QuotesPage() {
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.setFillColor(241, 245, 249);
-            doc.rect(130, finalY + 5, 60, 10, 'F');
-            doc.text('PRECIO FINAL:', 135, finalY + 11.5);
-            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, finalY + 11.5, { align: 'right' });
-            finalY += 25;
+            doc.rect(130, finalY + 10, 60, 10, 'F');
+            doc.text('PRECIO FINAL:', 135, finalY + 16.5);
+            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, finalY + 16.5, { align: 'right' });
+            finalY += 30;
 
             // --------------------------------
             // 💰 CONDICIONES DE PAGO

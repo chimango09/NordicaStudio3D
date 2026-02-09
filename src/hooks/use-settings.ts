@@ -11,6 +11,11 @@ const DEFAULT_SETTINGS: Settings = {
   printerConsumptionWatts: 150,
   profitMargin: 30,
   currency: 'ARS$',
+  companyName: 'Nórdica Studio 3D',
+  companyResponsible: 'Equipo Nórdica Studio',
+  companyPhone: '+54 9 11 1234-5678',
+  companyEmail: 'contacto@nordica3d.com',
+  companyLocation: 'Buenos Aires, Argentina',
 };
 
 export function useSettings() {
@@ -23,6 +28,10 @@ export function useSettings() {
       return DEFAULT_SETTINGS;
     }
     const settingsObj = settingsData.reduce((acc, setting) => {
+      // Don't parse numbers for string settings
+      if (['companyName', 'companyResponsible', 'companyPhone', 'companyEmail', 'companyLocation', 'currency'].includes(setting.id)) {
+        return { ...acc, [setting.id]: setting.value };
+      }
       const value = parseFloat(setting.value);
       return { ...acc, [setting.id]: isNaN(value) ? setting.value : value };
     }, {} as any);

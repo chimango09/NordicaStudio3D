@@ -67,6 +67,11 @@ export interface Settings {
     printerConsumptionWatts: number;
     profitMargin: number;
     currency: string;
+    companyName: string;
+    companyResponsible: string;
+    companyPhone: string;
+    companyEmail: string;
+    companyLocation: string;
 }
 
 export interface TrashItem {
