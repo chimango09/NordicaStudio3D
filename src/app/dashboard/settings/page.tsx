@@ -19,6 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/page-header";
 import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFirestore, useUser } from "@/firebase";
+import { generateBackup } from "@/lib/backup";
+
 
 const settingsSchema = z.object({
   companyName: z.string().min(1, "El nombre es obligatorio."),
@@ -39,6 +42,9 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 export default function SettingsPage() {
   const { toast } = useToast();
   const { settings, isLoading, saveSettings } = useSettings();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [isBackingUp, setIsBackingUp] = React.useState(false);
 
   const {
     register,
@@ -79,6 +85,27 @@ export default function SettingsPage() {
         setValue('companyLogo', base64String, { shouldDirty: true });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBackup = async () => {
+    if (!user || !firestore) return;
+    setIsBackingUp(true);
+    try {
+      await generateBackup(firestore, user.uid);
+      toast({
+        title: "Copia de Seguridad Generada",
+        description: "La descarga de tu archivo de backup ha comenzado.",
+      });
+    } catch (e) {
+      console.error("Failed to generate backup:", e);
+      toast({
+        variant: "destructive",
+        title: "Error al generar la copia",
+        description: "No se pudo completar la generación del backup.",
+      });
+    } finally {
+      setIsBackingUp(false);
     }
   };
 
@@ -263,6 +290,23 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
       </form>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Copia de Seguridad</CardTitle>
+          <CardDescription>
+            Genera una copia de seguridad de toda tu información en un único archivo JSON. Incluye clientes, inventario, cotizaciones, gastos y configuración.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Guarda este archivo en un lugar seguro. Puedes usarlo para restaurar tus datos manualmente o para migrarlos a otro sistema.
+          </p>
+          <Button onClick={handleBackup} disabled={isBackingUp} type="button">
+            {isBackingUp ? "Generando..." : "Generar Backup Completo"}
+          </Button>
+        </CardContent>
+      </Card>
     </>
   );
 }
