@@ -24,6 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -346,6 +347,11 @@ export default function QuotesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            <span>Descargar PDF</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger><span>Cambiar Estado</span></DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
@@ -354,6 +360,7 @@ export default function QuotesPage() {
                                 <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -445,12 +452,6 @@ export default function QuotesPage() {
                      <Separator/>
                      <div className="flex justify-between text-lg font-bold text-primary"><span>Ganancia</span><span>{settings.currency}{calculateProfit(selectedQuote).toFixed(2)}</span></div>
                 </div>
-                <DialogFooter className="mt-6 pt-4 border-t">
-                    <Button variant="outline" onClick={() => handleDownloadPdf(selectedQuote)}>
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Descargar PDF
-                    </Button>
-                </DialogFooter>
                 </>
             )}
         </DialogContent>
