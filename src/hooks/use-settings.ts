@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { collection, doc } from 'firebase/firestore';
-import { useCollection, useFirestore, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, setDocumentNonBlocking, useMemoFirebase, useUser } from '@/firebase';
 import type { Setting, Settings } from '@/lib/types';
 
 const DEFAULT_SETTINGS: Settings = {
@@ -21,7 +21,8 @@ const DEFAULT_SETTINGS: Settings = {
 
 export function useSettings() {
   const firestore = useFirestore();
-  const settingsCollection = useMemoFirebase(() => collection(firestore, 'settings'), [firestore]);
+  const { user } = useUser();
+  const settingsCollection = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'settings') : null, [firestore, user]);
   const { data: settingsData, isLoading, error } = useCollection<Setting>(settingsCollection);
 
   const settings = useMemo(() => {
@@ -40,9 +41,10 @@ export function useSettings() {
   }, [settingsData]);
 
   const saveSettings = (newSettings: Partial<Settings>) => {
+    if (!user) return;
     Object.entries(newSettings).forEach(([key, value]) => {
       if (value !== undefined) {
-        const settingRef = doc(firestore, 'settings', key);
+        const settingRef = doc(firestore, 'users', user.uid, 'settings', key);
         setDocumentNonBlocking(settingRef, { value: String(value) }, { merge: true });
       }
     });

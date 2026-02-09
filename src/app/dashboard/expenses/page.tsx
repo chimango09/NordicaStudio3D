@@ -42,6 +42,7 @@ import {
   useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
+  useUser,
 } from "@/firebase";
 import type { Expense } from "@/lib/types";
 import { useSettings } from "@/hooks/use-settings";
@@ -50,9 +51,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { settings } = useSettings();
-  const expensesCollection = useMemoFirebase(() => collection(firestore, "expenses"), [firestore]);
-  const { data: expenses, isLoading } = useCollection<Expense>(expensesCollection);
+
+  const expensesCollection = useMemoFirebase(
+    () => (user ? collection(firestore, "users", user.uid, "expenses") : null),
+    [firestore, user]
+  );
+  const { data: expenses, isLoading } = useCollection<Expense>(
+    expensesCollection
+  );
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(
@@ -70,22 +78,31 @@ export default function ExpensesPage() {
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
-    const expenseDocRef = doc(firestore, "expenses", expenseId);
+    if (!user) return;
+    const expenseDocRef = doc(
+      firestore,
+      "users",
+      user.uid,
+      "expenses",
+      expenseId
+    );
     const expenseSnap = await getDoc(expenseDocRef);
     if (expenseSnap.exists()) {
-        const expenseData = expenseSnap.data();
-        await addDoc(collection(firestore, "trash"), {
-            originalId: expenseSnap.id,
-            originalCollection: 'expenses',
-            deletedAt: new Date().toISOString(),
-            data: expenseData
-        });
-        await deleteDoc(expenseDocRef);
+      const expenseData = expenseSnap.data();
+      await addDoc(collection(firestore, "users", user.uid, "trash"), {
+        originalId: expenseSnap.id,
+        originalCollection: "expenses",
+        deletedAt: new Date().toISOString(),
+        data: expenseData,
+      });
+      await deleteDoc(expenseDocRef);
     }
   };
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!user || !expensesCollection) return;
+
     const formData = new FormData(event.currentTarget);
     const newExpenseData = {
       description: formData.get("description") as string,
@@ -94,17 +111,27 @@ export default function ExpensesPage() {
     };
 
     if (editingExpense) {
-        const expenseDoc = doc(firestore, 'expenses', editingExpense.id);
-        setDocumentNonBlocking(expenseDoc, newExpenseData, { merge: true });
+      const expenseDoc = doc(
+        firestore,
+        "users",
+        user.uid,
+        "expenses",
+        editingExpense.id
+      );
+      setDocumentNonBlocking(expenseDoc, newExpenseData, { merge: true });
     } else {
-        addDocumentNonBlocking(expensesCollection, newExpenseData);
+      addDocumentNonBlocking(expensesCollection, newExpenseData);
     }
     setIsSheetOpen(false);
     setEditingExpense(null);
   };
-  
+
   const sortedExpenses = React.useMemo(() => {
-    return expenses ? [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
+    return expenses
+      ? [...expenses].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+      : [];
   }, [expenses]);
 
   return (
@@ -117,8 +144,10 @@ export default function ExpensesPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Lista de Gastos</CardTitle>
-                <CardDescription>Una lista de todos los gastos registrados.</CardDescription>
+              <CardTitle>Lista de Gastos</CardTitle>
+              <CardDescription>
+                Una lista de todos los gastos registrados.
+              </CardDescription>
             </div>
             <Button onClick={handleAddExpense}>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -129,111 +158,154 @@ export default function ExpensesPage() {
         <CardContent>
           {/* Mobile view */}
           <div className="grid gap-4 md:hidden">
-            {isLoading && Array.from({ length: 4 }).map((_, i) => (
+            {isLoading &&
+              Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i}>
-                    <CardHeader className="pb-4">
-                        <Skeleton className="h-5 w-3/4" />
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-6 w-20" />
-                    </CardContent>
+                  <CardHeader className="pb-4">
+                    <Skeleton className="h-5 w-3/4" />
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-20" />
+                  </CardContent>
                 </Card>
-            ))}
-            {!isLoading && sortedExpenses.map((expense) => (
+              ))}
+            {!isLoading &&
+              sortedExpenses.map((expense) => (
                 <Card key={expense.id}>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-base font-medium">{expense.description}</CardTitle>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Toggle menu</span>
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
-                                Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
-                                Eliminar
-                            </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </CardHeader>
-                    <CardContent className="flex items-end justify-between">
-                        <div className="text-sm text-muted-foreground">{new Date(expense.date).toLocaleDateString()}</div>
-                        <div className="text-lg font-bold">{settings.currency}{expense.amount.toFixed(2)}</div>
-                    </CardContent>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-base font-medium">
+                      {expense.description}
+                    </CardTitle>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => handleEditExpense(expense)}
+                        >
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          className="text-destructive"
+                        >
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CardHeader>
+                  <CardContent className="flex items-end justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(expense.date).toLocaleDateString()}
+                    </div>
+                    <div className="text-lg font-bold">
+                      {settings.currency}
+                      {expense.amount.toFixed(2)}
+                    </div>
+                  </CardContent>
                 </Card>
-            ))}
+              ))}
           </div>
 
           {/* Desktop view */}
           <div className="hidden md:block">
             <Table>
-                <TableHeader>
+              <TableHeader>
                 <TableRow>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="text-right">Cantidad</TableHead>
-                    <TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead className="text-right">Cantidad</TableHead>
+                  <TableHead>
                     <span className="sr-only">Acciones</span>
-                    </TableHead>
+                  </TableHead>
                 </TableRow>
-                </TableHeader>
-                <TableBody>
-                {isLoading && Array.from({length: 4}).map((_, i) => (
+              </TableHeader>
+              <TableBody>
+                {isLoading &&
+                  Array.from({ length: 4 }).map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-48" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-20 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-8 w-8" />
+                      </TableCell>
                     </TableRow>
-                ))}
-                {!isLoading && sortedExpenses.map((expense) => (
+                  ))}
+                {!isLoading &&
+                  sortedExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                    <TableCell className="font-medium">{expense.description}</TableCell>
-                    <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
+                      <TableCell className="font-medium">
+                        {expense.description}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(expense.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
                         {settings.currency}
                         {expense.amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
+                      </TableCell>
+                      <TableCell>
                         <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
-                            Editar
+                            <DropdownMenuItem
+                              onClick={() => handleEditExpense(expense)}
+                            >
+                              Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
-                            Eliminar
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              className="text-destructive"
+                            >
+                              Eliminar
                             </DropdownMenuItem>
-                        </DropdownMenuContent>
+                          </DropdownMenuContent>
                         </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
                     </TableRow>
-                ))}
-                </TableBody>
+                  ))}
+              </TableBody>
             </Table>
           </div>
 
           {!isLoading && sortedExpenses.length === 0 && (
-              <div className="py-10 text-center text-muted-foreground">
-                  No hay gastos para mostrar.
-              </div>
+            <div className="py-10 text-center text-muted-foreground">
+              No hay gastos para mostrar.
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Sheet open={isSheetOpen} onOpenChange={(isOpen) => { setIsSheetOpen(isOpen); if (!isOpen) setEditingExpense(null); }}>
+      <Sheet
+        open={isSheetOpen}
+        onOpenChange={(isOpen) => {
+          setIsSheetOpen(isOpen);
+          if (!isOpen) setEditingExpense(null);
+        }}
+      >
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
@@ -281,14 +353,20 @@ export default function ExpensesPage() {
                   id="date"
                   name="date"
                   type="date"
-                  defaultValue={editingExpense?.date ? editingExpense.date.split("T")[0] : new Date().toISOString().split("T")[0]}
+                  defaultValue={
+                    editingExpense?.date
+                      ? editingExpense.date.split("T")[0]
+                      : new Date().toISOString().split("T")[0]
+                  }
                   className="col-span-3"
                   required
                 />
               </div>
             </div>
             <SheetFooter>
-              <Button type="submit">{editingExpense ? "Guardar Cambios" : "Crear Gasto"}</Button>
+              <Button type="submit">
+                {editingExpense ? "Guardar Cambios" : "Crear Gasto"}
+              </Button>
             </SheetFooter>
           </form>
         </SheetContent>

@@ -1,157 +1,142 @@
 /**
  * # Core Philosophy
- * This ruleset enforces a single-operator security model, designed for an application where one authenticated user (the business owner) manages all data. Access to any data—clients, expenses, quotes, etc.—is granted exclusively to signed-in users. There is no public or anonymous access to any part of the database.
+ * This ruleset enforces a multi-tenant security model where each user owns their data. Access to any data—clients, expenses, quotes, etc.—is granted exclusively to the authenticated user who created it. There is no public or cross-user data access.
  *
  * # Data Structure
- * The data is organized into several top-level collections:
- * - /clients: Manages customer information.
- * - /expenses: Tracks business expenses.
- * - /filaments: Manages 3D printing filament inventory.
- * - /accessories: Manages accessory inventory.
- * - /quotes: Stores job quotes for clients.
- * - /settings: Contains global application configuration.
- * - /trash: Contains soft-deleted documents from other collections.
- *
- * All collections are treated as private and are only accessible by an authenticated user.
+ * All application data is stored under a top-level `users` collection. Each user's data is then nested within their own document, keyed by their Firebase Authentication UID.
+ * - /users/{userId}: The root document for a user.
+ * - /users/{userId}/clients/{clientId}: Manages the user's customer information.
+ * - /users/{userId}/expenses/{expenseId}: Tracks the user's business expenses.
+ * - /users/{userId}/filaments/{filamentId}: Manages the user's 3D printing filament inventory.
+ * - /users/{userId}/accessories/{accessoryId}: Manages the user's accessory inventory.
+ * - /users/{userId}/quotes/{quoteId}: Stores the user's job quotes.
+ * - /users/{userId}/settings/{settingId}: Contains the user's application configuration.
+ * - /users/{userId}/trash/{trashId}: Contains the user's soft-deleted documents.
  *
  * # Key Security Decisions
- * - **Authenticated Access Only**: The primary security principle is that a user must be signed in to perform any operation (read, write, delete) on any data. This provides a strong default security posture.
- * - **No Public Data**: All collections, including lists of documents, are protected from public access. Listing documents is only permitted for authenticated users.
- * - **No Granular Ownership**: In this prototyping phase, the rules do not enforce per-document ownership (e.g., via an `ownerId` field). The model assumes a single administrator or operator for the entire dataset. This simplifies the rules for rapid development while maintaining high security against unauthorized access.
- * - **Destructive Operation Safety**: All update and delete operations are gated with a check to ensure the document exists before the operation is allowed. This prevents errors and ensures intent.
+ * - **Strict Ownership**: The primary security principle is that a user can only access documents located under their own user ID (`/users/{request.auth.uid}/...`). This is a non-negotiable rule that isolates user data.
+ * - **Authenticated Access Only**: No anonymous access is possible. A user must be signed in to perform any operation.
+ * - **No Public or Shared Data**: All collections and documents are private to the owning user.
+ * - **Destructive Operation Safety**: Update and delete operations are gated with a check to ensure the document exists before the operation is allowed, preventing writes to null paths.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ------------------------------------------------------------------------
-    // Helper Functions
+    // User Data Root
     // ------------------------------------------------------------------------
+    match /users/{userId} {
+      /**
+       * @description A user can get their own user document or create it. No one can list, update, or delete user root documents.
+       * @allow (get, create) The authenticated user's UID matches the {userId} in the path.
+       * @deny (list, update, delete) For all users to prevent enumeration or modification of user profiles.
+       */
+      allow get, create: if request.auth.uid == userId;
+      allow list, update, delete: if false;
 
-    /**
-     * Checks if the user is authenticated. This is the foundation of the
-     * security model, ensuring no anonymous access is possible.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
+      // ------------------------------------------------------------------------
+      // Helper Functions (Scoped to user's data)
+      // ------------------------------------------------------------------------
 
-    /**
-     * Ensures that a user is signed in and that the document they are trying
-     * to modify or delete actually exists. This prevents writes to null paths.
-     */
-    function isAuthenticatedAndDocExists() {
-      return isSignedIn() && resource != null;
-    }
+      /**
+       * Checks if the requesting user is the owner of the document.
+       * This is the foundation of the multi-tenant security model.
+       */
+      function isOwner() {
+        return request.auth.uid == userId;
+      }
+      
+      /**
+       * Ensures that a user is the owner and that the document they are trying
+       * to modify or delete actually exists.
+       */
+      function isOwnerAndDocExists() {
+        return isOwner() && resource != null;
+      }
 
 
-    // ------------------------------------------------------------------------
-    // Collection Rules
-    // ------------------------------------------------------------------------
+      // ------------------------------------------------------------------------
+      // User Sub-Collection Rules
+      // ------------------------------------------------------------------------
 
-    /**
-     * @description Manages client records. Only authenticated users can create, view, or manage clients.
-     * @path /clients/{clientId}
-     * @allow (create) An authenticated user creates a new client document.
-     * @deny (get) An unauthenticated (anonymous) user tries to read a client document.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /clients/{clientId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
-    }
+      /**
+       * @description Manages a user's client records.
+       * @path /users/{userId}/clients/{clientId}
+       * @allow (read, create) A user can read or create clients in their own collection.
+       * @allow (update, delete) A user can update or delete existing clients they own.
+       * @principle Enforces strict data ownership.
+       */
+      match /clients/{clientId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
 
-    /**
-     * @description Manages expense records. Only authenticated users can log or view expenses.
-     * @path /expenses/{expenseId}
-     * @allow (list) An authenticated user lists all business expenses.
-     * @deny (create) An unauthenticated (anonymous) user tries to create a new expense.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /expenses/{expenseId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
-    }
+      /**
+       * @description Manages a user's expense records.
+       * @path /users/{userId}/expenses/{expenseId}
+       * @allow (read, create) A user can log or view expenses they own.
+       * @principle Enforces strict data ownership.
+       */
+      match /expenses/{expenseId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
 
-    /**
-     * @description Manages filament inventory. Only authenticated users can add, view, or update filament stock.
-     * @path /filaments/{filamentId}
-     * @allow (update) An authenticated user updates the stock level of a filament.
-     * @deny (list) An unauthenticated (anonymous) user tries to list the filament inventory.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /filaments/{filamentId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
-    }
+      /**
+       * @description Manages a user's filament inventory.
+       * @path /users/{userId}/filaments/{filamentId}
+       * @allow (read, create) A user can manage their own filament inventory.
+       * @principle Enforces strict data ownership.
+       */
+      match /filaments/{filamentId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
+      
+      /**
+       * @description Manages a user's accessory inventory.
+       * @path /users/{userId}/accessories/{accessoryId}
+       * @allow (read, create) A user can manage their own accessory inventory.
+       * @principle Enforces strict data ownership.
+       */
+      match /accessories/{accessoryId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
 
-    /**
-     * @description Manages accessory inventory. Only authenticated users can add, view, or update accessory stock.
-     * @path /accessories/{accessoryId}
-     * @allow (update) An authenticated user updates the stock level of an accessory.
-     * @deny (list) An unauthenticated (anonymous) user tries to list the accessory inventory.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /accessories/{accessoryId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
-    }
+      /**
+       * @description Manages a user's quotes.
+       * @path /users/{userId}/quotes/{quoteId}
+       * @allow (read, create) A user can manage their own quotes.
+       * @principle Enforces strict data ownership.
+       */
+      match /quotes/{quoteId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
 
-    /**
-     * @description Manages quotes for printing jobs. Only authenticated users can create, view, or manage quotes.
-     * @path /quotes/{quoteId}
-     * @allow (delete) An authenticated user deletes an old quote.
-     * @deny (get) An unauthenticated (anonymous) user tries to read a specific quote.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /quotes/{quoteId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
-    }
+      /**
+       * @description Manages a user's application settings.
+       * @path /users/{userId}/settings/{settingId}
+       * @allow (read, create) A user can manage their own settings.
+       * @principle Enforces strict data ownership.
+       */
+      match /settings/{settingId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
 
-    /**
-     * @description Manages application settings. Only authenticated users can read or modify settings.
-     * @path /settings/{settingId}
-     * @allow (get) An authenticated user reads a configuration setting like 'currency'.
-     * @deny (update) An unauthenticated (anonymous) user tries to change the profit margin.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /settings/{settingId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
-    }
-
-    /**
-     * @description Manages soft-deleted documents. Only authenticated users can manage the trash.
-     * @path /trash/{trashId}
-     * @allow (list) An authenticated user lists items in the trash.
-     * @deny (create) An unauthenticated (anonymous) user tries to add an item to the trash.
-     * @principle Restricts all data access to authenticated users, treating the app as a private management tool.
-     */
-    match /trash/{trashId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAuthenticatedAndDocExists();
-      allow delete: if isAuthenticatedAndDocExists();
+      /**
+       * @description Manages a user's soft-deleted documents.
+       * @path /users/{userId}/trash/{trashId}
+       * @allow (read, create) A user can manage their own trash.
+       * @principle Enforces strict data ownership.
+       */
+      match /trash/{trashId} {
+        allow get, list, create: if isOwner();
+        allow update, delete: if isOwnerAndDocExists();
+      }
     }
   }
 }

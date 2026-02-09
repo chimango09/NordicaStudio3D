@@ -1,5 +1,20 @@
 {
   "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the user account was created."
+        }
+      },
+      "required": [
+        "createdAt"
+      ]
+    },
     "Client": {
       "title": "Client",
       "type": "object",
@@ -262,47 +277,53 @@
     ]
   },
   "firestore": {
-    "/clients/{clientId}": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profile information. `userId` is the document ID from Firebase Authentication."
+    },
+    "/users/{userId}/clients/{clientId}": {
       "schema": {
         "$ref": "#/entities/Client"
       },
-      "description": "Stores client information. `clientId` is the document ID."
+      "description": "Stores client information for a specific user."
     },
-    "/expenses/{expenseId}": {
+    "/users/{userId}/expenses/{expenseId}": {
       "schema": {
         "$ref": "#/entities/Expense"
       },
-      "description": "Stores expense records. `expenseId` is the document ID."
+      "description": "Stores expense records for a specific user."
     },
-    "/filaments/{filamentId}": {
+    "/users/{userId}/filaments/{filamentId}": {
       "schema": {
         "$ref": "#/entities/Filament"
       },
-      "description": "Stores filament inventory information. `filamentId` is the document ID."
+      "description": "Stores filament inventory information for a specific user."
     },
-    "/accessories/{accessoryId}": {
+    "/users/{userId}/accessories/{accessoryId}": {
       "schema": {
         "$ref": "#/entities/Accessory"
       },
-      "description": "Stores accessory inventory information. `accessoryId` is the document ID."
+      "description": "Stores accessory inventory information for a specific user."
     },
-    "/quotes/{quoteId}": {
+    "/users/{userId}/quotes/{quoteId}": {
       "schema": {
         "$ref": "#/entities/Quote"
       },
-      "description": "Stores quotes for 3D printing jobs. `quoteId` is the document ID."
+      "description": "Stores quotes for 3D printing jobs for a specific user."
     },
-    "/settings/{settingId}": {
+    "/users/{userId}/settings/{settingId}": {
       "schema": {
         "$ref": "#/entities/Setting"
       },
-      "description": "Stores application settings. `settingId` is the document ID."
+      "description": "Stores application settings for a specific user."
     },
-    "/trash/{trashId}": {
+    "/users/{userId}/trash/{trashId}": {
       "schema": {
         "$ref": "#/entities/TrashItem"
       },
-      "description": "Stores soft-deleted items from other collections. `trashId` is the document ID."
+      "description": "Stores soft-deleted items from other collections for a specific user."
     }
   }
 }

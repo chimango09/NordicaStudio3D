@@ -65,6 +65,7 @@ import {
   addDocumentNonBlocking,
   setDocumentNonBlocking,
   updateDocumentNonBlocking,
+  useUser,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
 import type { Quote, Client, Filament, Accessory, QuoteMaterial, QuoteAccessory } from "@/lib/types";
@@ -87,18 +88,19 @@ declare module 'jspdf' {
 
 export default function QuotesPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesCollection = useMemoFirebase(() => collection(firestore, "quotes"), [firestore]);
+  const quotesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user]);
   const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
 
-  const clientsCollection = useMemoFirebase(() => collection(firestore, "clients"), [firestore]);
+  const clientsCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "clients") : null), [firestore, user]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
 
-  const filamentsCollection = useMemoFirebase(() => collection(firestore, "filaments"), [firestore]);
+  const filamentsCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "filaments") : null), [firestore, user]);
   const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
   
-  const accessoriesCollection = useMemoFirebase(() => collection(firestore, "accessories"), [firestore]);
+  const accessoriesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "accessories") : null), [firestore, user]);
   const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesCollection);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -178,7 +180,7 @@ export default function QuotesPage() {
   }, [formValues, filaments, accessories, settings]);
 
   const handleCreateQuote = () => {
-    if (!canCreateQuote) return;
+    if (!canCreateQuote || !user || !quotesCollection) return;
 
     const finalMaterials = formValues.materials
       .filter((mat) => mat.filamentId && mat.grams > 0)
@@ -203,11 +205,11 @@ export default function QuotesPage() {
     addDocumentNonBlocking(quotesCollection, quoteData);
 
     quoteData.materials.forEach((mat) => {
-      const filamentDoc = doc(firestore, 'filaments', mat.filamentId);
+      const filamentDoc = doc(firestore, 'users', user.uid, 'filaments', mat.filamentId);
       updateDocumentNonBlocking(filamentDoc, { stockLevel: increment(-mat.grams) });
     });
     quoteData.accessories.forEach((acc) => {
-      const accessoryDoc = doc(firestore, 'accessories', acc.accessoryId);
+      const accessoryDoc = doc(firestore, 'users', user.uid, 'accessories', acc.accessoryId);
       updateDocumentNonBlocking(accessoryDoc, { stockLevel: increment(-acc.quantity) });
     });
 
@@ -216,11 +218,12 @@ export default function QuotesPage() {
   };
 
   const handleDeleteQuote = async (quoteId: string) => {
-    const quoteDocRef = doc(firestore, 'quotes', quoteId);
+    if (!user) return;
+    const quoteDocRef = doc(firestore, 'users', user.uid, 'quotes', quoteId);
     const quoteSnap = await getDoc(quoteDocRef);
     if (quoteSnap.exists()) {
       const quoteData = quoteSnap.data();
-      await addDoc(collection(firestore, "trash"), {
+      await addDoc(collection(firestore, "users", user.uid, "trash"), {
         originalId: quoteSnap.id,
         originalCollection: "quotes",
         deletedAt: new Date().toISOString(),
@@ -231,7 +234,8 @@ export default function QuotesPage() {
   }
 
   const handleStatusChange = (quoteId: string, status: Quote['status']) => {
-    const quoteDoc = doc(firestore, 'quotes', quoteId);
+    if (!user) return;
+    const quoteDoc = doc(firestore, 'users', user.uid, 'quotes', quoteId);
     setDocumentNonBlocking(quoteDoc, { status }, { merge: true });
   };
   

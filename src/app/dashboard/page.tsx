@@ -11,7 +11,7 @@ import {
 import { DollarSign, Wallet, ReceiptText, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { collection } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { useSettings } from '@/hooks/use-settings';
 import type { Quote, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,9 +23,6 @@ import {
   YAxis,
   Tooltip,
   Legend,
-  Line,
-  LineChart,
-  CartesianGrid,
 } from "recharts";
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 
@@ -46,12 +43,13 @@ const chartConfig = {
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesCollection = useMemoFirebase(() => collection(firestore, "quotes"), [firestore]);
+  const quotesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user]);
   const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
 
-  const expensesCollection = useMemoFirebase(() => collection(firestore, "expenses"), [firestore]);
+  const expensesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "expenses") : null), [firestore, user]);
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesCollection);
   
   const isLoading = isLoadingQuotes || isLoadingExpenses;
