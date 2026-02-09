@@ -9,6 +9,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  Mail,
   PanelLeft,
   ReceiptText,
   Settings,
@@ -36,7 +37,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/firebase';
-import { getAuth, signOut, updatePassword } from 'firebase/auth';
+import { getAuth, signOut, updatePassword, updateEmail } from 'firebase/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -136,6 +137,12 @@ const passwordSchema = z.object({
 });
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
+const emailSchema = z.object({
+  newEmail: z.string().email('Por favor, ingresa un email válido.'),
+});
+type EmailFormValues = z.infer<typeof emailSchema>;
+
+
 export default function DashboardLayout({
   children,
 }: {
@@ -146,6 +153,7 @@ export default function DashboardLayout({
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const pathname = usePathname();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const { toast } = useToast();
 
   const {
@@ -155,6 +163,15 @@ export default function DashboardLayout({
     reset: resetPasswordForm,
   } = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
+  });
+  
+  const {
+    register: emailRegister,
+    handleSubmit: handleEmailSubmit,
+    formState: { errors: emailErrors, isSubmitting: isChangingEmail },
+    reset: resetEmailForm,
+  } = useForm<EmailFormValues>({
+    resolver: zodResolver(emailSchema),
   });
 
   const onPasswordChangeSubmit: SubmitHandler<PasswordFormValues> = async (data) => {
@@ -171,6 +188,34 @@ export default function DashboardLayout({
       let description = "Ocurrió un error al cambiar tu contraseña.";
       if (error.code === 'auth/requires-recent-login') {
         description = "Esta operación es sensible y requiere autenticación reciente. Por favor, cierra sesión y vuelve a ingresar antes de intentarlo de nuevo.";
+      }
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: description,
+      });
+    }
+  };
+  
+  const onEmailChangeSubmit: SubmitHandler<EmailFormValues> = async (data) => {
+    if (!user) return;
+    try {
+      await updateEmail(user, data.newEmail);
+      toast({
+        title: "Email actualizado",
+        description: "Tu dirección de email ha sido cambiada. Se cerrará tu sesión para que vuelvas a ingresar.",
+      });
+      setIsEmailDialogOpen(false);
+      resetEmailForm();
+      setTimeout(() => {
+        handleSignOut();
+      }, 3000);
+    } catch (error: any) {
+      let description = "Ocurrió un error al cambiar tu email.";
+      if (error.code === 'auth/requires-recent-login') {
+        description = "Esta operación es sensible y requiere autenticación reciente. Por favor, cierra sesión y vuelve a ingresar antes de intentarlo de nuevo.";
+      } else if (error.code === 'auth/email-already-in-use') {
+        description = "Esta dirección de email ya está en uso por otra cuenta.";
       }
       toast({
         variant: "destructive",
@@ -326,6 +371,13 @@ export default function DashboardLayout({
                   <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    onClick={() => setIsEmailDialogOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    <span>Cambiar Email</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     onClick={() => setIsPasswordDialogOpen(true)}
                     className="cursor-pointer"
                   >
@@ -348,6 +400,42 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
+
+      <Dialog open={isEmailDialogOpen} onOpenChange={(isOpen) => {
+        setIsEmailDialogOpen(isOpen);
+        if (!isOpen) {
+          resetEmailForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambiar Email</DialogTitle>
+            <DialogDescription>
+             Ingresa tu nueva dirección de email. Se cerrará tu sesión actual para que vuelvas a ingresar con el nuevo email.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEmailSubmit(onEmailChangeSubmit)}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="newEmail">Nuevo Email</Label>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  placeholder={user.email ?? ""}
+                  {...emailRegister("newEmail")}
+                />
+                {emailErrors.newEmail && <p className="text-sm text-destructive">{emailErrors.newEmail.message}</p>}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={isChangingEmail}>
+                {isChangingEmail ? "Actualizando..." : "Actualizar Email"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog open={isPasswordDialogOpen} onOpenChange={(isOpen) => {
         setIsPasswordDialogOpen(isOpen);
         if (!isOpen) {
