@@ -27,7 +27,22 @@ import {
   LineChart,
   CartesianGrid,
 } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+
+const chartConfig = {
+  revenue: {
+    label: 'Ingresos',
+    color: 'hsl(var(--chart-2))',
+  },
+  expenses: {
+    label: 'Gastos',
+    color: 'hsl(var(--chart-5))',
+  },
+  netProfit: {
+    label: 'Ganancia Neta',
+    color: 'hsl(var(--chart-4))',
+  },
+} satisfies ChartConfig;
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -163,16 +178,16 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-64 w-full" /> : 
-                <ChartContainer config={{}} className="min-h-64 w-full">
+                <ChartContainer config={chartConfig} className="min-h-64 w-full">
                     <BarChart data={monthlyData} accessibilityLayer>
                         <CartesianGrid vertical={false} />
                         <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                         <YAxis tickLine={false} tickMargin={10} axisLine={false} />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Legend />
-                        <Bar dataKey="revenue" name="Ingresos" fill="var(--chart-2)" radius={4} />
-                        <Bar dataKey="expenses" name="Gastos" fill="var(--chart-5)" radius={4} />
-                        <Bar dataKey="netProfit" name="Ganancia Neta" fill="var(--chart-4)" radius={4} />
+                        <Bar dataKey="revenue" name="Ingresos" fill="var(--color-revenue)" radius={4} />
+                        <Bar dataKey="expenses" name="Gastos" fill="var(--color-expenses)" radius={4} />
+                        <Bar dataKey="netProfit" name="Ganancia Neta" fill="var(--color-netProfit)" radius={4} />
                     </BarChart>
                 </ChartContainer>
                 }
