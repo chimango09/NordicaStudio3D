@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useUser } from "@/firebase";
-import { generateBackup, generateCsvForCollection } from "@/lib/backup";
+import { generateExcelBackup } from "@/lib/backup";
 
 
 const settingsSchema = z.object({
@@ -45,7 +45,6 @@ export default function SettingsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [isBackingUp, setIsBackingUp] = React.useState(false);
-  const [isExportingCsv, setIsExportingCsv] = React.useState<string | null>(null);
 
   const {
     register,
@@ -89,45 +88,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleBackup = async () => {
+  const handleExcelBackup = async () => {
     if (!user || !firestore) return;
     setIsBackingUp(true);
     try {
-      await generateBackup(firestore, user.uid);
+      await generateExcelBackup(firestore, user.uid);
       toast({
         title: "Copia de Seguridad Generada",
-        description: "La descarga de tu archivo de backup ha comenzado.",
+        description: "La descarga de tu archivo Excel ha comenzado.",
       });
-    } catch (e) {
-      console.error("Failed to generate backup:", e);
+    } catch (e: any) {
+      console.error("Failed to generate Excel backup:", e);
       toast({
         variant: "destructive",
         title: "Error al generar la copia",
-        description: "No se pudo completar la generación del backup.",
+        description: e.message || "No se pudo completar la generación del backup.",
       });
     } finally {
       setIsBackingUp(false);
-    }
-  };
-  
-  const handleCsvExport = async (collectionName: string) => {
-    if (!user || !firestore) return;
-    setIsExportingCsv(collectionName);
-    try {
-      await generateCsvForCollection(firestore, user.uid, collectionName);
-      toast({
-        title: "Exportación Completa",
-        description: `Tus datos de ${collectionName} se han exportado a CSV.`,
-      });
-    } catch (e: any) {
-      console.error(`Failed to generate CSV for ${collectionName}:`, e);
-      toast({
-        variant: "destructive",
-        title: "Error al exportar",
-        description: e.message || `No se pudo completar la exportación para ${collectionName}.`,
-      });
-    } finally {
-      setIsExportingCsv(null);
     }
   };
 
@@ -316,43 +294,17 @@ export default function SettingsPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Exportar Datos en Formato CSV</CardTitle>
+          <CardTitle>Copia de Seguridad (Excel)</CardTitle>
           <CardDescription>
-            Descarga tus datos en formato CSV, que puedes abrir con Excel u otras hojas de cálculo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Button onClick={() => handleCsvExport('clients')} disabled={!!isExportingCsv} type="button">
-            {isExportingCsv === 'clients' ? "Exportando..." : "Exportar Clientes"}
-          </Button>
-          <Button onClick={() => handleCsvExport('quotes')} disabled={!!isExportingCsv} type="button">
-            {isExportingCsv === 'quotes' ? "Exportando..." : "Exportar Cotizaciones"}
-          </Button>
-          <Button onClick={() => handleCsvExport('expenses')} disabled={!!isExportingCsv} type="button">
-            {isExportingCsv === 'expenses' ? "Exportando..." : "Exportar Gastos"}
-          </Button>
-          <Button onClick={() => handleCsvExport('filaments')} disabled={!!isExportingCsv} type="button">
-            {isExportingCsv === 'filaments' ? "Exportando..." : "Exportar Filamentos"}
-          </Button>
-          <Button onClick={() => handleCsvExport('accessories')} disabled={!!isExportingCsv} type="button">
-            {isExportingCsv === 'accessories' ? "Exportando..." : "Exportar Accesorios"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Copia de Seguridad Completa (JSON)</CardTitle>
-          <CardDescription>
-            Genera una copia de seguridad de toda tu información en un único archivo JSON. Incluye clientes, inventario, cotizaciones, gastos y configuración.
+            Genera una copia de seguridad de toda tu información en un único archivo Excel, con cada tipo de dato en su propia hoja.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Guarda este archivo en un lugar seguro. Este formato es ideal para una restauración completa del sistema.
+            Guarda este archivo en un lugar seguro. Es ideal para tener una vista clara y estructurada de todos tus registros.
           </p>
-          <Button onClick={handleBackup} disabled={isBackingUp} type="button">
-            {isBackingUp ? "Generando..." : "Generar Backup JSON Completo"}
+          <Button onClick={handleExcelBackup} disabled={isBackingUp} type="button">
+            {isBackingUp ? "Generando..." : "Generar Backup en Excel"}
           </Button>
         </CardContent>
       </Card>

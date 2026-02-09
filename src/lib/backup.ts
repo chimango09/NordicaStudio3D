@@ -1,98 +1,80 @@
 'use client';
 
 import { Firestore, collection, getDocs } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 
 const COLLECTIONS_TO_BACKUP = ['clients', 'filaments', 'accessories', 'quotes', 'expenses', 'settings'];
 
-interface BackupData {
-  [key: string]: any[];
-}
+const collectionDisplayNames: { [key: string]: string } = {
+  clients: "Clientes",
+  filaments: "Filamentos",
+  accessories: "Accesorios",
+  quotes: "Cotizaciones",
+  expenses: "Gastos",
+  settings: "Configuración",
+};
 
 /**
- * Fetches all data for a given user and generates a downloadable JSON file.
+ * Fetches all data for a given user and generates a downloadable Excel file
+ * with each collection in a separate sheet.
  * @param firestore The Firestore instance.
  * @param userId The ID of the user whose data to back up.
  */
-export async function generateBackup(firestore: Firestore, userId: string): Promise<void> {
-  const backupData: BackupData = {};
-  
+export async function generateExcelBackup(firestore: Firestore, userId: string): Promise<void> {
+  const wb = XLSX.utils.book_new();
+
   const backupPromises = COLLECTIONS_TO_BACKUP.map(async (collectionName) => {
-    const colRef = collection(firestore, 'users', userId, collectionName);
-    const snapshot = await getDocs(colRef);
-    const docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    backupData[collectionName] = docsData;
+    try {
+      const colRef = collection(firestore, 'users', userId, collectionName);
+      const snapshot = await getDocs(colRef);
+      let docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Flatten nested objects (like in quotes) for better readability in Excel
+      if (['quotes', 'trash'].includes(collectionName)) {
+          docsData = docsData.map(doc => {
+              const newDoc: {[key: string]: any} = {};
+              for(const key in doc) {
+                  if(typeof (doc as any)[key] === 'object' && (doc as any)[key] !== null) {
+                      newDoc[key] = JSON.stringify((doc as any)[key]);
+                  } else {
+                      newDoc[key] = (doc as any)[key];
+                  }
+              }
+              return newDoc;
+          });
+      }
+
+      if (docsData.length > 0) {
+        const ws = XLSX.utils.json_to_sheet(docsData);
+
+        // Auto-fit columns for better readability
+        const colWidths = Object.keys(docsData[0]).map(key => {
+          let maxLength = key.length;
+          docsData.forEach(row => {
+            const value = String((row as any)[key] || '');
+            if (value.length > maxLength) {
+              maxLength = value.length;
+            }
+          });
+          return { wch: maxLength + 2 }; // +2 for a little padding
+        });
+        ws['!cols'] = colWidths;
+        
+        const sheetName = collectionDisplayNames[collectionName] || collectionName;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      }
+    } catch (error) {
+      console.error(`Error backing up collection ${collectionName}:`, error);
+      // We can decide to either throw an error or just log it and continue
+    }
   });
 
   await Promise.all(backupPromises);
+  
+  if (wb.SheetNames.length === 0) {
+    throw new Error('No hay datos para exportar.');
+  }
 
-  const jsonString = JSON.stringify(backupData, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
   const date = new Date().toISOString().split('T')[0];
-  a.download = `backup-nordica-studio-3d-${date}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  URL.revokeObjectURL(url);
-}
-
-
-function convertToCSV(data: any[]): string {
-    if (!data || data.length === 0) {
-        return '';
-    }
-
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(',')];
-
-    for (const row of data) {
-        const values = headers.map(header => {
-            let cell = row[header];
-
-            if (typeof cell === 'object' && cell !== null) {
-                cell = JSON.stringify(cell);
-            }
-
-            const stringCell = String(cell ?? '');
-            const escaped = stringCell.replace(/"/g, '""');
-            return `"${escaped}"`;
-        });
-        csvRows.push(values.join(','));
-    }
-
-    return csvRows.join('\n');
-}
-
-/**
- * Fetches data from a specific collection and triggers a CSV file download.
- * @param firestore The Firestore instance.
- * @param userId The ID of the user.
- * @param collectionName The name of the collection to back up.
- */
-export async function generateCsvForCollection(firestore: Firestore, userId:string, collectionName: string): Promise<void> {
-    const colRef = collection(firestore, 'users', userId, collectionName);
-    const snapshot = await getDocs(colRef);
-    if (snapshot.empty) {
-        throw new Error(`No hay datos en ${collectionName} para exportar.`);
-    }
-
-    const docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    const csvString = convertToCSV(docsData);
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    const date = new Date().toISOString().split('T')[0];
-    a.download = `${collectionName}-backup-${date}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    URL.revokeObjectURL(url);
+  XLSX.writeFile(wb, `backup-nordica-studio-3d-${date}.xlsx`);
 }
