@@ -302,56 +302,28 @@ export default function QuotesPage() {
     // 🧾 DETALLE DE LA PIEZA / SERVICIO
     // --------------------------------
     const tableBody = [];
-    const printingServiceCost = (quote.machineCost || 0) + (quote.electricityCost || 0);
-    const totalCost = calculateTotalCost(quote);
-    const profitAmount = quote.price - totalCost;
-
+    
     tableBody.push([
-      { content: `Descripción: ${quote.description || 'Trabajo de impresión 3D'}`, colSpan: 3, styles: { fontStyle: 'bold' } }
+        'Pieza / Descripción',
+        quote.description || 'Trabajo de impresión 3D'
     ]);
-    
-    // Materials
-    (quote.materials || []).forEach(mat => {
-        const filament = filaments?.find(f => f.id === mat.filamentId);
-        const materialCost = filament ? (filament.costPerKg / 1000) * mat.grams : 0;
-        tableBody.push([
-            `Material / Filamento: ${filament?.name || ''} ${filament?.color || ''}`,
-            `${mat.grams.toFixed(1)}g`,
-            `${settings.currency}${materialCost.toFixed(2)}`
-        ]);
-    });
-    
-    // Printing service
-    if (printingServiceCost > 0) {
-        tableBody.push([
-            'Servicio de Impresión',
-            `${quote.printingTimeHours} hs`,
-            `${settings.currency}${printingServiceCost.toFixed(2)}`
-        ]);
+    if (quote.printingTimeHours > 0) {
+      tableBody.push([
+          'Tiempo de Impresión Estimado',
+          `${quote.printingTimeHours} hs`
+      ]);
     }
-    
-    tableBody.push([
-        { content: 'Subtotal', styles: { fontStyle: 'bold' } },
-        '',
-        { content: `${settings.currency}${totalCost.toFixed(2)}`, styles: { halign: 'right' } }
-    ]);
-    tableBody.push([
-        { content: `Porcentaje de Ganancia Aplicado (${settings.profitMargin}%)`, styles: { fontStyle: 'bold' } },
-        '',
-        { content: `${settings.currency}${profitAmount.toFixed(2)}`, styles: { halign: 'right' } }
-    ]);
 
     doc.autoTable({
         startY: 80,
-        head: [['Descripción', 'Cantidad', 'Precio']],
+        head: [['Concepto', 'Detalle']],
         body: tableBody,
         theme: 'grid',
         headStyles: { fillColor: [241, 245, 249], textColor: [23, 23, 23], fontStyle: 'bold' },
-        styles: { fontSize: 9, cellPadding: 2 },
+        styles: { fontSize: 10, cellPadding: 3 },
         columnStyles: {
-            0: { cellWidth: 120 },
-            1: { cellWidth: 25, halign: 'center' },
-            2: { cellWidth: 25, halign: 'right' },
+            0: { cellWidth: 60, fontStyle: 'bold' },
+            1: { cellWidth: 110 },
         },
         didDrawPage: (data: any) => {
             let finalY = data.cursor.y;
@@ -360,10 +332,10 @@ export default function QuotesPage() {
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.setFillColor(241, 245, 249);
-            doc.rect(130, finalY + 10, 60, 10, 'F');
-            doc.text('PRECIO FINAL:', 135, finalY + 16.5);
-            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, finalY + 16.5, { align: 'right' });
-            finalY += 30;
+            doc.rect(130, finalY + 15, 60, 10, 'F');
+            doc.text('PRECIO FINAL:', 135, finalY + 21.5);
+            doc.text(`${settings.currency}${quote.price.toFixed(2)}`, 190, finalY + 21.5, { align: 'right' });
+            finalY += 35;
 
             // --------------------------------
             // 💰 CONDICIONES DE PAGO
