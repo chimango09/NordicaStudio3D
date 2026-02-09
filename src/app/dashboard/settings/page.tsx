@@ -26,6 +26,7 @@ const settingsSchema = z.object({
   companyPhone: z.string().min(1, "El teléfono es obligatorio."),
   companyEmail: z.string().email("Email no válido."),
   companyLocation: z.string().min(1, "La ubicación es obligatoria."),
+  companyLogo: z.string().optional(),
   electricityCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   machineCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   printerConsumptionWatts: z.coerce.number().min(0, "El consumo debe ser no negativo."),
@@ -43,11 +44,15 @@ export default function SettingsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     values: settings,
   });
+
+  const companyLogoValue = watch('companyLogo');
 
   React.useEffect(() => {
     if (settings) {
@@ -65,6 +70,18 @@ export default function SettingsPage() {
     reset(data); // To reset dirty state
   };
   
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setValue('companyLogo', base64String, { shouldDirty: true });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   if (isLoading) {
       return (
         <>
@@ -150,6 +167,16 @@ export default function SettingsPage() {
               <Label htmlFor="companyLocation">Ciudad y País</Label>
               <Input id="companyLocation" {...register("companyLocation")} />
               {errors.companyLocation && <p className="text-sm text-destructive">{errors.companyLocation.message}</p>}
+            </div>
+            <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="companyLogo">Logo de la Empresa</Label>
+                <Input id="companyLogo" type="file" accept="image/png, image/jpeg" onChange={handleLogoChange} className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"/>
+                {companyLogoValue && (
+                    <div className="mt-2 flex items-center gap-4">
+                        <img src={companyLogoValue} alt="Previsualización del logo" className="h-20 w-auto object-contain border p-1 rounded-md bg-muted/30" />
+                        <Button variant="ghost" size="sm" onClick={() => setValue('companyLogo', '', { shouldDirty: true })}>Eliminar logo</Button>
+                    </div>
+                )}
             </div>
           </CardContent>
         </Card>

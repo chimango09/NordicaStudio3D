@@ -266,6 +266,20 @@ export default function QuotesPage() {
     const emitterEmail = settings.companyEmail;
     const emitterLocation = settings.companyLocation;
 
+    let startYPos = 20;
+
+    if (settings.companyLogo) {
+      try {
+        const imgWidth = 30;
+        const imgProps = doc.getImageProperties(settings.companyLogo);
+        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+        doc.addImage(settings.companyLogo, 'PNG', 20, startYPos, imgWidth, imgHeight);
+        startYPos += imgHeight;
+      } catch (e) {
+        console.error("Error adding logo to PDF:", e);
+      }
+    }
+    
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
     doc.text(emitterName, 20, 20);
@@ -285,18 +299,24 @@ export default function QuotesPage() {
     doc.text(`Número: ${quote.id.substring(0, 8).toUpperCase()}`, 190, 27, { align: 'right' });
     doc.text(`Fecha: ${new Date(quote.date).toLocaleDateString()}`, 190, 34, { align: 'right' });
 
+    const lineY = Math.max(startYPos, 43) + 7;
     doc.setLineWidth(0.5);
-    doc.line(20, 50, 190, 50);
+    doc.line(20, lineY, 190, lineY);
 
     // --------------------------------
     // 👤 DATOS DEL CLIENTE
     // --------------------------------
+    let clientY = lineY + 10;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("CLIENTE:", 20, 60);
+    doc.text("CLIENTE:", 20, clientY);
+    clientY += 7;
     doc.setFont("helvetica", "normal");
-    doc.text(client?.name || 'N/A', 20, 67);
-    if (client?.phone) doc.text(`Teléfono: ${client.phone}`, 20, 72);
+    doc.text(client?.name || 'N/A', 20, clientY);
+    if (client?.phone) {
+        clientY += 5;
+        doc.text(`Teléfono: ${client.phone}`, 20, clientY);
+    }
 
     // --------------------------------
     // 🧾 DETALLE DE LA PIEZA / SERVICIO
@@ -315,7 +335,7 @@ export default function QuotesPage() {
     }
 
     doc.autoTable({
-        startY: 80,
+        startY: clientY + 10,
         head: [['Concepto', 'Detalle']],
         body: tableBody,
         theme: 'grid',
@@ -329,9 +349,9 @@ export default function QuotesPage() {
             let finalY = data.cursor.y;
             
             // --- Totals Section ---
-            const totalsStartY = finalY + 15;
+            const totalsStartY = finalY + 10;
             const totalsHeight = 18;
-            const totalsWidth = 75;
+            const totalsWidth = 85;
             const totalsX = 190 - totalsWidth; 
 
             doc.setFillColor(241, 245, 249);

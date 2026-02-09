@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS: Settings = {
   companyPhone: '+54 9 11 1234-5678',
   companyEmail: 'contacto@nordica3d.com',
   companyLocation: 'Buenos Aires, Argentina',
+  companyLogo: '',
 };
 
 export function useSettings() {
@@ -29,7 +30,7 @@ export function useSettings() {
     }
     const settingsObj = settingsData.reduce((acc, setting) => {
       // Don't parse numbers for string settings
-      if (['companyName', 'companyResponsible', 'companyPhone', 'companyEmail', 'companyLocation', 'currency'].includes(setting.id)) {
+      if (['companyName', 'companyResponsible', 'companyPhone', 'companyEmail', 'companyLocation', 'currency', 'companyLogo'].includes(setting.id)) {
         return { ...acc, [setting.id]: setting.value };
       }
       const value = parseFloat(setting.value);

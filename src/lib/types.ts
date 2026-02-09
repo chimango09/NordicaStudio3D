@@ -39,7 +39,7 @@ export interface QuoteAccessory {
 }
 
 export interface Quote {
-  id: string;
+  id:string;
   clientId: string;
   clientName?: string; // Denormalized for display
   date: string;
@@ -72,6 +72,7 @@ export interface Settings {
     companyPhone: string;
     companyEmail: string;
     companyLocation: string;
+    companyLogo?: string;
 }
 
 export interface TrashItem {
