@@ -60,28 +60,28 @@ export default function DashboardPage() {
         title: "Ingresos Totales",
         value: `${settings.currency} ${totalRevenue.toFixed(2)}`,
         description: "Total de cotizaciones entregadas.",
-        colorClass: "text-green-500",
+        colorClass: "text-chart-2",
       },
       {
         icon: TrendingUp,
         title: "Ganancia Bruta",
         value: `${settings.currency} ${grossProfit.toFixed(2)}`,
         description: "Ingresos menos costos de producción.",
-        colorClass: grossProfit >= 0 ? "text-green-500" : "text-red-500",
+        colorClass: grossProfit >= 0 ? "text-chart-2" : "text-chart-5",
       },
       {
         icon: ReceiptText,
         title: "Gastos Operativos",
         value: `${settings.currency} ${totalOperationalExpenses.toFixed(2)}`,
         description: "Todos los gastos operativos registrados.",
-        colorClass: "text-red-500",
+        colorClass: "text-chart-5",
       },
       {
         icon: Wallet,
         title: "Ganancia Neta",
         value: `${settings.currency} ${netProfit.toFixed(2)}`,
         description: "Ganancia bruta menos gastos.",
-        colorClass: netProfit >= 0 ? "text-green-500" : "text-red-500",
+        colorClass: netProfit >= 0 ? "text-chart-2" : "text-chart-5",
       },
     ];
 
