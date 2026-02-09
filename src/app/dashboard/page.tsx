@@ -172,7 +172,7 @@ export default function DashboardPage() {
                         <Legend />
                         <Bar dataKey="revenue" name="Ingresos" fill="var(--chart-2)" radius={4} />
                         <Bar dataKey="expenses" name="Gastos" fill="var(--chart-5)" radius={4} />
-                        <Bar dataKey="netProfit" name="Ganancia Neta" fill="var(--chart-1)" radius={4} />
+                        <Bar dataKey="netProfit" name="Ganancia Neta" fill="var(--chart-4)" radius={4} />
                     </BarChart>
                 </ChartContainer>
                 }
