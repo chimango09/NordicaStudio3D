@@ -266,15 +266,17 @@ export default function QuotesPage() {
     const emitterEmail = settings.companyEmail;
     const emitterLocation = settings.companyLocation;
 
-    let startYPos = 20;
+    const startYPos = 20;
+    let textXPos = 20;
+    let logoHeight = 0;
 
     if (settings.companyLogo) {
       try {
         const imgWidth = 30;
         const imgProps = doc.getImageProperties(settings.companyLogo);
-        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-        doc.addImage(settings.companyLogo, 'PNG', 20, startYPos, imgWidth, imgHeight);
-        startYPos += imgHeight;
+        logoHeight = (imgProps.height * imgWidth) / imgProps.width;
+        doc.addImage(settings.companyLogo, 'PNG', 20, startYPos, imgWidth, logoHeight);
+        textXPos = 20 + imgWidth + 10;
       } catch (e) {
         console.error("Error adding logo to PDF:", e);
       }
@@ -282,14 +284,15 @@ export default function QuotesPage() {
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.text(emitterName, 20, 20);
+    doc.text(emitterName, textXPos, startYPos + 5);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.text(`Responsable: ${emitterResponsible}`, 20, 28);
-    doc.text(`Tel: ${emitterPhone}`, 20, 33);
-    doc.text(`Email: ${emitterEmail}`, 20, 38);
-    doc.text(emitterLocation, 20, 43);
+    doc.text(`Responsable: ${emitterResponsible}`, textXPos, startYPos + 13);
+    doc.text(`Tel: ${emitterPhone}`, textXPos, startYPos + 18);
+    doc.text(`Email: ${emitterEmail}`, textXPos, startYPos + 23);
+    doc.text(emitterLocation, textXPos, startYPos + 28);
+
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
@@ -299,9 +302,11 @@ export default function QuotesPage() {
     doc.text(`Número: ${quote.id.substring(0, 8).toUpperCase()}`, 190, 27, { align: 'right' });
     doc.text(`Fecha: ${new Date(quote.date).toLocaleDateString()}`, 190, 34, { align: 'right' });
 
-    const lineY = Math.max(startYPos, 43) + 7;
+    const emitterBlockHeight = 30; // Approx height of the text block
+    const lineY = startYPos + Math.max(logoHeight, emitterBlockHeight) + 7;
     doc.setLineWidth(0.5);
     doc.line(20, lineY, 190, lineY);
+
 
     // --------------------------------
     // 👤 DATOS DEL CLIENTE
