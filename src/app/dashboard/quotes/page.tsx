@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Trash2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, FileDown } from "lucide-react";
+import jsPDF from 'jspdf';
 import {
   Table,
   TableBody,
@@ -42,6 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,8 +110,11 @@ export default function QuotesPage() {
   const isLoading = isLoadingQuotes || isLoadingClients || isLoadingFilaments || isLoadingAccessories;
 
   const canCreateQuote = React.useMemo(() => {
-    return calculatedPrice > 0 && !!formValues.clientId;
-  }, [calculatedPrice, formValues.clientId]);
+    const hasContent = formValues.materials.some(m => m.filamentId && m.grams > 0) || 
+                       formValues.accessories.some(a => a.accessoryId && a.quantity > 0) ||
+                       formValues.printingTimeHours > 0;
+    return hasContent && calculatedPrice > 0 && !!formValues.clientId;
+  }, [calculatedPrice, formValues]);
   
   const resetForm = () => {
     setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [] });
@@ -186,10 +191,6 @@ export default function QuotesPage() {
       ...costs,
     };
     
-    if(quoteData.materials.length === 0 && quoteData.accessories.length === 0 && quoteData.printingTimeHours <= 0) {
-      return;
-    }
-
     addDocumentNonBlocking(quotesCollection, quoteData);
 
     quoteData.materials.forEach((mat) => {
@@ -243,6 +244,65 @@ export default function QuotesPage() {
   const calculateTotalCost = (quote: Quote) => (quote.materialCost || 0) + (quote.accessoryCost || 0) + (quote.machineCost || 0) + (quote.electricityCost || 0);
   const calculateProfit = (quote: Quote) => quote.price - calculateTotalCost(quote);
 
+  const handleDownloadPdf = (quote: QuoteWithClientName) => {
+    const doc = new jsPDF();
+    
+    // Logo and Title
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("Nórdica Studio 3D", 105, 25, { align: "center" });
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.text("Cotización", 105, 35, { align: "center" });
+
+    doc.setLineWidth(0.5);
+    doc.line(20, 45, 190, 45);
+
+    // Date
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${new Date(quote.date).toLocaleDateString()}`, 190, 55, { align: 'right' });
+
+    // Client Info
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Cliente:", 20, 65);
+    doc.setFont("helvetica", "normal");
+    doc.text(quote.clientName, 20, 72);
+
+    doc.line(20, 85, 190, 85);
+
+    // Table Header
+    doc.setFont("helvetica", "bold");
+    doc.text("Descripción", 20, 92);
+    doc.text("Total", 190, 92, { align: "right" });
+    
+    doc.line(20, 95, 190, 95);
+
+    // Table Body
+    doc.setFont("helvetica", "normal");
+    const description = quote.description || "Trabajo de impresión 3D";
+    const priceText = `${settings.currency}${quote.price.toFixed(2)}`;
+
+    const splitDescription = doc.splitTextToSize(description, 130);
+    let yPosition = 102;
+    doc.text(splitDescription, 20, yPosition);
+
+    doc.text(priceText, 190, yPosition, { align: "right" });
+    
+    const descriptionHeight = splitDescription.length * 5; 
+    yPosition += descriptionHeight + 5;
+
+
+    doc.line(20, yPosition, 190, yPosition);
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL:", 150, yPosition + 10, { align: "right" });
+    doc.text(priceText, 190, yPosition + 10, { align: "right" });
+
+    doc.save(`Cotizacion-${quote.clientName.replace(/\s+/g, '_')}-${quote.id.substring(0, 5)}.pdf`);
+  };
 
   return (
     <>
@@ -341,10 +401,14 @@ export default function QuotesPage() {
       </Sheet>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
             {selectedQuote && (
-                <><DialogHeader><DialogTitle>Detalles de la Cotización</DialogTitle><DialogDescription>Desglose de costos y ganancias para la cotización de {selectedQuote.clientName}.</DialogDescription></DialogHeader>
-                <div className="space-y-4">
+                <>
+                <DialogHeader>
+                    <DialogTitle>Detalles de la Cotización</DialogTitle>
+                    <DialogDescription>Desglose de costos y ganancias para la cotización de {selectedQuote.clientName}.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
                     <div><h4 className="font-medium">Resumen</h4><p className="text-sm text-muted-foreground">{selectedQuote.description || "Sin descripción."}</p></div>
                     <Separator/>
                     <div className="grid gap-2">
@@ -381,6 +445,12 @@ export default function QuotesPage() {
                      <Separator/>
                      <div className="flex justify-between text-lg font-bold text-primary"><span>Ganancia</span><span>{settings.currency}{calculateProfit(selectedQuote).toFixed(2)}</span></div>
                 </div>
+                <DialogFooter className="mt-6 pt-4 border-t">
+                    <Button variant="outline" onClick={() => handleDownloadPdf(selectedQuote)}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Descargar PDF
+                    </Button>
+                </DialogFooter>
                 </>
             )}
         </DialogContent>
