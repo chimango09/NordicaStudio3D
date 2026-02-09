@@ -120,58 +120,108 @@ export default function ClientsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-24"/></TableCell>
-                  <TableCell><Skeleton className="h-5 w-36"/></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24"/></TableCell>
-                  <TableCell><Skeleton className="h-5 w-48"/></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8"/></TableCell>
+          {/* Mobile view */}
+          <div className="grid gap-4 md:hidden">
+            {isLoading && Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-4">
+                        <Skeleton className="h-6 w-32" />
+                        <Skeleton className="h-8 w-8" />
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                    </CardContent>
+                </Card>
+            ))}
+            {!isLoading && clients?.map((client) => (
+                <Card key={client.id}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-4">
+                        <CardTitle className="text-lg">{client.name}</CardTitle>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                                Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteClient(client.id)} className="text-destructive">
+                                Eliminar
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardHeader>
+                    <CardContent>
+                        {client.email && <div className="text-sm text-muted-foreground"><span className="font-semibold">Email:</span> {client.email}</div>}
+                        {client.phone && <div className="text-sm text-muted-foreground mt-1"><span className="font-semibold">Teléfono:</span> {client.phone}</div>}
+                        {client.address && <div className="text-sm text-muted-foreground mt-1"><span className="font-semibold">Dirección:</span> {client.address}</div>}
+                     </CardContent>
+                </Card>
+            ))}
+          </div>
+        
+          {/* Desktop view */}
+          <div className="hidden md:block">
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Teléfono</TableHead>
+                    <TableHead>Dirección</TableHead>
+                    <TableHead>
+                    <span className="sr-only">Acciones</span>
+                    </TableHead>
                 </TableRow>
-              ))}
-              {!isLoading && clients?.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                  <TableCell>{client.address}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteClient(client.id)} className="text-destructive">
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-           {!isLoading && clients?.length === 0 && (
+                </TableHeader>
+                <TableBody>
+                {isLoading && Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-36"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-48"/></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8"/></TableCell>
+                    </TableRow>
+                ))}
+                {!isLoading && clients?.map((client) => (
+                    <TableRow key={client.id}>
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell>{client.email}</TableCell>
+                    <TableCell>{client.phone}</TableCell>
+                    <TableCell>{client.address}</TableCell>
+                    <TableCell>
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                            Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteClient(client.id)} className="text-destructive">
+                            Eliminar
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+          </div>
+          
+          {!isLoading && clients?.length === 0 && (
             <div className="py-10 text-center text-muted-foreground">
               No hay clientes para mostrar.
             </div>

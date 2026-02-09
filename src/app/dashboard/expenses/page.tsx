@@ -127,62 +127,109 @@ export default function ExpensesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead>
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && Array.from({length: 4}).map((_, i) => (
-                 <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                 </TableRow>
-              ))}
-              {!isLoading && sortedExpenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    {settings.currency}
-                    {expense.amount.toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {/* Mobile view */}
+          <div className="grid gap-4 md:hidden">
+            {isLoading && Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="pb-4">
+                        <Skeleton className="h-5 w-3/4" />
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-6 w-20" />
+                    </CardContent>
+                </Card>
+            ))}
+            {!isLoading && sortedExpenses.map((expense) => (
+                <Card key={expense.id}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-base font-medium">{expense.description}</CardTitle>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
+                                Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
+                                Eliminar
+                            </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardHeader>
+                    <CardContent className="flex items-end justify-between">
+                        <div className="text-sm text-muted-foreground">{new Date(expense.date).toLocaleDateString()}</div>
+                        <div className="text-lg font-bold">{settings.currency}{expense.amount.toFixed(2)}</div>
+                    </CardContent>
+                </Card>
+            ))}
+          </div>
+
+          {/* Desktop view */}
+          <div className="hidden md:block">
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead className="text-right">Cantidad</TableHead>
+                    <TableHead>
+                    <span className="sr-only">Acciones</span>
+                    </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-            {!isLoading && sortedExpenses.length === 0 && (
-                <div className="py-10 text-center text-muted-foreground">
-                    No hay gastos para mostrar.
-                </div>
-            )}
+                </TableHeader>
+                <TableBody>
+                {isLoading && Array.from({length: 4}).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                    </TableRow>
+                ))}
+                {!isLoading && sortedExpenses.map((expense) => (
+                    <TableRow key={expense.id}>
+                    <TableCell className="font-medium">{expense.description}</TableCell>
+                    <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                        {settings.currency}
+                        {expense.amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
+                            Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
+                            Eliminar
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+          </div>
+
+          {!isLoading && sortedExpenses.length === 0 && (
+              <div className="py-10 text-center text-muted-foreground">
+                  No hay gastos para mostrar.
+              </div>
+          )}
         </CardContent>
       </Card>
 

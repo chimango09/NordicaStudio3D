@@ -443,51 +443,107 @@ export default function QuotesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Total</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && Array.from({length: 3}).map((_, i) => (
-                <TableRow key={i}><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-6 w-20"/></TableCell><TableCell><Skeleton className="h-5 w-20 ml-auto"/></TableCell><TableCell><Skeleton className="h-8 w-8"/></TableCell></TableRow>
-              ))}
-              {!isLoading && quotes.map((quote) => (
-                <TableRow key={quote.id}>
-                  <TableCell className="font-medium">{quote.clientName}</TableCell>
-                  <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
-                  <TableCell><Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge></TableCell>
-                  <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            <span>Descargar PDF</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger><span>Cambiar Estado</span></DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Pendiente')}>Pendiente</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Imprimiendo')}>Imprimiendo</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {/* Mobile view */}
+          <div className="grid gap-4 md:hidden">
+            {isLoading && Array.from({length: 3}).map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="pb-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-6 w-20" />
+                    </CardContent>
+                </Card>
+            ))}
+            {!isLoading && quotes.map((quote) => (
+                <Card key={quote.id}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div>
+                            <CardTitle className="text-base font-medium">{quote.clientName}</CardTitle>
+                            <CardDescription>{new Date(quote.date).toLocaleDateString()}</CardDescription>
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
+                                    <FileDown className="mr-2 h-4 w-4" />
+                                    <span>Descargar PDF</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger><span>Cambiar Estado</span></DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Pendiente')}>Pendiente</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Imprimiendo')}>Imprimiendo</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between">
+                         <Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge>
+                         <div className="text-lg font-bold">{settings.currency}{quote.price.toFixed(2)}</div>
+                    </CardContent>
+                </Card>
+            ))}
+          </div>
+
+          {/* Desktop view */}
+          <div className="hidden md:block">
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Total</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-            {!isLoading && quotes.length === 0 && (<div className="py-10 text-center text-muted-foreground">No hay cotizaciones para mostrar.</div>)}
+                </TableHeader>
+                <TableBody>
+                {isLoading && Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-6 w-20"/></TableCell><TableCell><Skeleton className="h-5 w-20 ml-auto"/></TableCell><TableCell><Skeleton className="h-8 w-8"/></TableCell></TableRow>
+                ))}
+                {!isLoading && quotes.map((quote) => (
+                    <TableRow key={quote.id}>
+                    <TableCell className="font-medium">{quote.clientName}</TableCell>
+                    <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
+                    <TableCell><Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge></TableCell>
+                    <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
+                    <TableCell>
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
+                                <FileDown className="mr-2 h-4 w-4" />
+                                <span>Descargar PDF</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger><span>Cambiar Estado</span></DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Pendiente')}>Pendiente</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Imprimiendo')}>Imprimiendo</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+          </div>
+          
+          {!isLoading && quotes.length === 0 && (<div className="py-10 text-center text-muted-foreground">No hay cotizaciones para mostrar.</div>)}
         </CardContent>
       </Card>
 
