@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Boxes,
   Calculator,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   PanelLeft,
@@ -14,6 +15,9 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,7 +36,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/firebase';
-import { getAuth, signOut } from 'firebase/auth';
+import { getAuth, signOut, updatePassword } from 'firebase/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -42,6 +46,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel' },
@@ -111,6 +127,15 @@ function NavLink({
   );
 }
 
+const passwordSchema = z.object({
+  newPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+  confirmPassword: z.string()
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Las contraseñas no coinciden.",
+  path: ["confirmPassword"],
+});
+type PasswordFormValues = z.infer<typeof passwordSchema>;
+
 export default function DashboardLayout({
   children,
 }: {
@@ -120,6 +145,40 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const pathname = usePathname();
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
+  const { toast } = useToast();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset: resetPasswordForm,
+  } = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+  });
+
+  const onPasswordChangeSubmit: SubmitHandler<PasswordFormValues> = async (data) => {
+    if (!user) return;
+    try {
+      await updatePassword(user, data.newPassword);
+      toast({
+        title: "Contraseña actualizada",
+        description: "Tu contraseña ha sido cambiada exitosamente.",
+      });
+      setIsPasswordDialogOpen(false);
+      resetPasswordForm();
+    } catch (error: any) {
+      let description = "Ocurrió un error al cambiar tu contraseña.";
+      if (error.code === 'auth/requires-recent-login') {
+        description = "Esta operación es sensible y requiere autenticación reciente. Por favor, cierra sesión y vuelve a ingresar antes de intentarlo de nuevo.";
+      }
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: description,
+      });
+    }
+  };
 
   React.useEffect(() => {
     if (!isUserLoading && !user) {
@@ -235,51 +294,102 @@ export default function DashboardLayout({
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      {desktopNav}
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center border-b bg-card px-4 md:px-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden md:flex"
-              onClick={toggleSidebar}
-            >
-              <PanelLeft className="h-6 w-6" />
-              <span className="sr-only">Toggle Sidebar</span>
-            </Button>
-            {mobileNav}
-          </div>
-          <div className="ml-auto flex items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
-                    <AvatarFallback>
-                      {user.email?.[0].toUpperCase() ?? 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Cerrar Sesión</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          {children}
-        </main>
+    <>
+      <div className="flex min-h-screen w-full bg-background">
+        {desktopNav}
+        <div className="flex flex-1 flex-col">
+          <header className="flex h-16 shrink-0 items-center border-b bg-card px-4 md:px-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden md:flex"
+                onClick={toggleSidebar}
+              >
+                <PanelLeft className="h-6 w-6" />
+                <span className="sr-only">Toggle Sidebar</span>
+              </Button>
+              {mobileNav}
+            </div>
+            <div className="ml-auto flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar>
+                      <AvatarFallback>
+                        {user.email?.[0].toUpperCase() ?? 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setIsPasswordDialogOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    <span>Cambiar Contraseña</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+      <Dialog open={isPasswordDialogOpen} onOpenChange={(isOpen) => {
+        setIsPasswordDialogOpen(isOpen);
+        if (!isOpen) {
+          resetPasswordForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Ingresa tu nueva contraseña. Esta operación es sensible y puede requerir que inicies sesión de nuevo si tu sesión actual es muy antigua.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onPasswordChangeSubmit)}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  {...register("newPassword")}
+                />
+                {errors.newPassword && <p className="text-sm text-destructive">{errors.newPassword.message}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
