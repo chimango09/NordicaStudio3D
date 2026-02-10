@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { usePrevious } from '@/hooks/use-previous';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -53,8 +54,9 @@ export function useCollection<T = any>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const prevQuery = usePrevious(targetRefOrQuery);
 
   useEffect(() => {
     if (!targetRefOrQuery) {
@@ -63,11 +65,15 @@ export function useCollection<T = any>(
       setError(null);
       return;
     }
+    
+    // If the query is the same as before, no need to re-subscribe
+    if (prevQuery && prevQuery.isEqual(targetRefOrQuery)) {
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
-    // Directly use targetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       targetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -82,9 +88,8 @@ export function useCollection<T = any>(
       (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
         const path: string =
-          targetRefOrQuery.type === 'collection'
-            ? (targetRefOrQuery as CollectionReference).path
-            : (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+          (targetRefOrQuery as CollectionReference).path ||
+          (targetRefOrQuery as unknown as InternalQuery)._query?.path?.canonicalString();
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
@@ -101,7 +106,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [targetRefOrQuery]); // Re-run if the query object itself changes.
+  }, [targetRefOrQuery, prevQuery]);
 
   return { data, isLoading, error };
 }
