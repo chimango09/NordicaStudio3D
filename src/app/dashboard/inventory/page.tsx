@@ -60,18 +60,24 @@ export default function InventoryPage() {
   const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
 
   const [isFilamentSheetOpen, setIsFilamentSheetOpen] = React.useState(false);
-  const [editingFilament, setEditingFilament] =
-    React.useState<Filament | null>(null);
+  const [editingFilamentId, setEditingFilamentId] = React.useState<string | null>(null);
+  const editingFilament = React.useMemo(() => {
+    if (!editingFilamentId || !filaments) return null;
+    return filaments.find(f => f.id === editingFilamentId) ?? null;
+  }, [editingFilamentId, filaments]);
 
-  const [isAccessorySheetOpen, setIsAccessorySheetOpen] =
-    React.useState(false);
-  const [editingAccessory, setEditingAccessory] =
-    React.useState<Accessory | null>(null);
+
+  const [isAccessorySheetOpen, setIsAccessorySheetOpen] = React.useState(false);
+  const [editingAccessoryId, setEditingAccessoryId] = React.useState<string | null>(null);
+  const editingAccessory = React.useMemo(() => {
+    if (!editingAccessoryId || !accessories) return null;
+    return accessories.find(a => a.id === editingAccessoryId) ?? null;
+  }, [editingAccessoryId, accessories]);
 
   const isLoading = isLoadingFilaments || isLoadingAccessories;
 
   const handleOpenFilamentSheet = (filament: Filament | null) => {
-    setEditingFilament(filament);
+    setEditingFilamentId(filament ? filament.id : null);
     setIsFilamentSheetOpen(true);
   };
 
@@ -112,13 +118,13 @@ export default function InventoryPage() {
       costPerKg: parseFloat(formData.get("costPerKg") as string),
     };
 
-    if (editingFilament) {
+    if (editingFilamentId) {
       const filamentDoc = doc(
         firestore,
         "users",
         user.uid,
         "filaments",
-        editingFilament.id
+        editingFilamentId
       );
       setDocumentNonBlocking(filamentDoc, filamentData, { merge: true });
     } else {
@@ -128,7 +134,7 @@ export default function InventoryPage() {
   };
 
   const handleOpenAccessorySheet = (accessory: Accessory | null) => {
-    setEditingAccessory(accessory);
+    setEditingAccessoryId(accessory ? accessory.id : null);
     setIsAccessorySheetOpen(true);
   };
 
@@ -168,13 +174,13 @@ export default function InventoryPage() {
       cost: parseFloat(formData.get("cost") as string),
     };
 
-    if (editingAccessory) {
+    if (editingAccessoryId) {
       const accessoryDoc = doc(
         firestore,
         "users",
         user.uid,
         "accessories",
-        editingAccessory.id
+        editingAccessoryId
       );
       setDocumentNonBlocking(accessoryDoc, accessoryData, { merge: true });
     } else {
@@ -381,7 +387,7 @@ export default function InventoryPage() {
         open={isFilamentSheetOpen}
         onOpenChange={(isOpen) => {
           setIsFilamentSheetOpen(isOpen);
-          if (!isOpen) setEditingFilament(null);
+          if (!isOpen) setEditingFilamentId(null);
         }}
       >
         <SheetContent>
@@ -462,7 +468,7 @@ export default function InventoryPage() {
         open={isAccessorySheetOpen}
         onOpenChange={(isOpen) => {
           setIsAccessorySheetOpen(isOpen);
-          if (!isOpen) setEditingAccessory(null);
+          if (!isOpen) setEditingAccessoryId(null);
         }}
       >
         <SheetContent>

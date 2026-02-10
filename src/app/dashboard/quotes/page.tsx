@@ -116,7 +116,20 @@ export default function QuotesPage() {
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
-  const [selectedQuote, setSelectedQuote] = React.useState<QuoteWithClientName | null>(null);
+  const [selectedQuoteId, setSelectedQuoteId] = React.useState<string | null>(null);
+
+  const quotes: QuoteWithClientName[] = React.useMemo(() => {
+    return quotesData?.map(quote => ({
+      ...quote,
+      id: quote.id,
+      clientName: clients?.find(c => c.id === quote.clientId)?.name || 'N/A'
+    })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+  }, [quotesData, clients])
+
+  const selectedQuote = React.useMemo(() => {
+    if (!selectedQuoteId || !quotes) return null;
+    return quotes.find(q => q.id === selectedQuoteId) ?? null;
+  }, [selectedQuoteId, quotes]);
 
   const [formValues, setFormValues] = React.useState({
     clientId: "",
@@ -252,17 +265,9 @@ export default function QuotesPage() {
   };
   
   const handleViewDetails = (quote: QuoteWithClientName) => {
-    setSelectedQuote(quote);
+    setSelectedQuoteId(quote.id);
     setIsDetailsOpen(true);
   };
-  
-  const quotes: QuoteWithClientName[] = React.useMemo(() => {
-    return quotesData?.map(quote => ({
-      ...quote,
-      id: quote.id,
-      clientName: clients?.find(c => c.id === quote.clientId)?.name || 'N/A'
-    })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
-  }, [quotesData, clients])
   
   const accessoriesData = accessories;
   

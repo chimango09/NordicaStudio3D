@@ -58,17 +58,20 @@ export default function ClientsPage() {
   const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingClient, setEditingClient] = React.useState<Client | null>(
-    null
-  );
+  const [editingClientId, setEditingClientId] = React.useState<string | null>(null);
+
+  const editingClient = React.useMemo(() => {
+    if (!editingClientId || !clients) return null;
+    return clients.find(c => c.id === editingClientId) ?? null;
+  }, [editingClientId, clients]);
 
   const handleAddClient = () => {
-    setEditingClient(null);
+    setEditingClientId(null);
     setIsSheetOpen(true);
   };
 
   const handleEditClient = (client: Client) => {
-    setEditingClient(client);
+    setEditingClientId(client.id);
     setIsSheetOpen(true);
   };
 
@@ -101,14 +104,14 @@ export default function ClientsPage() {
       address: formData.get("address") as string,
     };
 
-    if (editingClient) {
-      const clientDoc = doc(firestore, "users", user.uid, "clients", editingClient.id);
+    if (editingClientId) {
+      const clientDoc = doc(firestore, "users", user.uid, "clients", editingClientId);
       setDocumentNonBlocking(clientDoc, clientData, { merge: true });
     } else {
       addDocumentNonBlocking(clientsCollection, clientData);
     }
     setIsSheetOpen(false);
-    setEditingClient(null);
+    setEditingClientId(null);
   };
 
   return (
@@ -289,7 +292,7 @@ export default function ClientsPage() {
         open={isSheetOpen}
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
-          if (!isOpen) setEditingClient(null);
+          if (!isOpen) setEditingClientId(null);
         }}
       >
         <SheetContent>

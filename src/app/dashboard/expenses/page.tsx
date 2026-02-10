@@ -60,17 +60,20 @@ export default function ExpensesPage() {
   const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingExpense, setEditingExpense] = React.useState<Expense | null>(
-    null
-  );
+  const [editingExpenseId, setEditingExpenseId] = React.useState<string | null>(null);
+
+  const editingExpense = React.useMemo(() => {
+    if (!editingExpenseId || !expenses) return null;
+    return expenses.find(e => e.id === editingExpenseId) ?? null;
+  }, [editingExpenseId, expenses]);
 
   const handleAddExpense = () => {
-    setEditingExpense(null);
+    setEditingExpenseId(null);
     setIsSheetOpen(true);
   };
 
   const handleEditExpense = (expense: Expense) => {
-    setEditingExpense(expense);
+    setEditingExpenseId(expense.id);
     setIsSheetOpen(true);
   };
 
@@ -108,20 +111,20 @@ export default function ExpensesPage() {
       date: new Date(formData.get("date") as string).toISOString(),
     };
 
-    if (editingExpense) {
+    if (editingExpenseId) {
       const expenseDoc = doc(
         firestore,
         "users",
         user.uid,
         "expenses",
-        editingExpense.id
+        editingExpenseId
       );
       setDocumentNonBlocking(expenseDoc, newExpenseData, { merge: true });
     } else {
       addDocumentNonBlocking(expensesCollection, newExpenseData);
     }
     setIsSheetOpen(false);
-    setEditingExpense(null);
+    setEditingExpenseId(null);
   };
 
   const sortedExpenses = React.useMemo(() => {
@@ -301,7 +304,7 @@ export default function ExpensesPage() {
         open={isSheetOpen}
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
-          if (!isOpen) setEditingExpense(null);
+          if (!isOpen) setEditingExpenseId(null);
         }}
       >
         <SheetContent>
