@@ -35,7 +35,6 @@ import {
 import {
   useFirestore,
   useCollection,
-  useMemoFirebase,
   deleteDocumentNonBlocking,
   updateDocumentNonBlocking,
   useUser,
@@ -56,7 +55,7 @@ const collectionDisplayNames: { [key: string]: string } = {
 export default function TrashPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const trashCollection = useMemoFirebase(
+  const trashCollection = React.useMemo(
     () => (user ? collection(firestore, "users", user.uid, "trash") : null),
     [firestore, user?.uid]
   );

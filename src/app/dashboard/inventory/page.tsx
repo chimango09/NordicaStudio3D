@@ -33,7 +33,6 @@ import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
   useUser,
@@ -48,14 +47,14 @@ export default function InventoryPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const filamentsCollection = useMemoFirebase(
+  const filamentsCollection = React.useMemo(
     () => (user ? collection(firestore, "users", user.uid, "filaments") : null),
     [firestore, user?.uid]
   );
   const { data: filaments, isLoading: isLoadingFilaments } =
     useCollection<Filament>(filamentsCollection);
 
-  const accessoriesCollection = useMemoFirebase(
+  const accessoriesCollection = React.useMemo(
     () =>
       user ? collection(firestore, "users", user.uid, "accessories") : null,
     [firestore, user?.uid]

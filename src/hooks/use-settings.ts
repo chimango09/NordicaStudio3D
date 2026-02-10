@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { collection, doc } from 'firebase/firestore';
-import { useCollection, useFirestore, setDocumentNonBlocking, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
 import type { Setting, Settings } from '@/lib/types';
 
 const DEFAULT_SETTINGS: Settings = {
@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: Settings = {
 export function useSettings() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const settingsCollection = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'settings') : null, [firestore, user?.uid]);
+  const settingsCollection = useMemo(() => user ? collection(firestore, 'users', user.uid, 'settings') : null, [firestore, user?.uid]);
   const { data: settingsData, isLoading, error } = useCollection<Setting>(settingsCollection);
 
   const settings = useMemo(() => {

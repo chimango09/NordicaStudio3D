@@ -39,7 +39,6 @@ import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
   useUser,
@@ -54,7 +53,7 @@ export default function ExpensesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const expensesCollection = useMemoFirebase(
+  const expensesCollection = React.useMemo(
     () => (user ? collection(firestore, "users", user.uid, "expenses") : null),
     [firestore, user?.uid]
   );

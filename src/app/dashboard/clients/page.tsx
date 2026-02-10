@@ -39,7 +39,6 @@ import { collection, doc, getDoc, addDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
   useUser,
@@ -52,7 +51,7 @@ export default function ClientsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const clientsCollection = useMemoFirebase(
+  const clientsCollection = React.useMemo(
     () => (user ? collection(firestore, "users", user.uid, "clients") : null),
     [firestore, user?.uid]
   );
