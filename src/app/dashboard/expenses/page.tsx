@@ -35,7 +35,25 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  increment,
+} from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
@@ -46,14 +64,23 @@ import type { Expense } from "@/lib/types";
 import { useSettings } from "@/hooks/use-settings";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
-type ExpenseFormData = Omit<Expense, "id">;
+type ExpenseFormData = {
+  description: string;
+  amount: number;
+  date: string;
+  // Filament fields
+  filamentName: string;
+  filamentColor: string;
+  grams: number;
+};
 
 const getTodayLocalYYYYMMDD = () => {
   const d = new Date();
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -61,12 +88,16 @@ const defaultExpenseForm: ExpenseFormData = {
   description: "",
   amount: 0,
   date: getTodayLocalYYYYMMDD(),
+  filamentName: "",
+  filamentColor: "",
+  grams: 0,
 };
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { settings } = useSettings();
+  const { toast } = useToast();
 
   const expensesQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
@@ -75,6 +106,9 @@ export default function ExpensesPage() {
   const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [expenseType, setExpenseType] = React.useState<"general" | "filament">(
+    "general"
+  );
   const [formData, setFormData] =
     React.useState<ExpenseFormData>(defaultExpenseForm);
 
@@ -86,7 +120,13 @@ export default function ExpensesPage() {
     }));
   };
 
+  const resetForm = () => {
+    setFormData(defaultExpenseForm);
+    setExpenseType("general");
+  };
+
   const handleAddExpense = () => {
+    resetForm();
     setFormData({
       ...defaultExpenseForm,
       date: getTodayLocalYYYYMMDD(),
@@ -116,21 +156,70 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const expensesCollection = user
-      ? collection(firestore, `users/${user.uid}/expenses`)
-      : null;
-    if (!user || !expensesCollection) return;
+    if (!user) return;
 
-    const newExpenseData = {
-      ...formData,
-      date: new Date(formData.date).toISOString(),
-    };
+    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
 
-    addDocumentNonBlocking(expensesCollection, newExpenseData);
+    if (expenseType === 'filament') {
+      if (!formData.filamentName || !formData.filamentColor || !formData.grams || !formData.amount) {
+        toast({ variant: "destructive", title: "Error", description: "Todos los campos de filamento son obligatorios." });
+        return;
+      }
+      
+      const filamentsCollection = collection(firestore, `users/${user.uid}/filaments`);
+      const q = query(filamentsCollection, where("name", "==", formData.filamentName), where("color", "==", formData.filamentColor));
+
+      try {
+        const querySnapshot = await getDocs(q);
+        const newCostPerKg = (formData.amount / formData.grams) * 1000;
+
+        if (!querySnapshot.empty) {
+          const filamentDoc = querySnapshot.docs[0];
+          const filamentRef = doc(firestore, `users/${user.uid}/filaments`, filamentDoc.id);
+          await updateDoc(filamentRef, {
+            stockLevel: increment(formData.grams),
+            costPerKg: newCostPerKg 
+          });
+        } else {
+          await addDoc(filamentsCollection, {
+            name: formData.filamentName,
+            color: formData.filamentColor,
+            stockLevel: formData.grams,
+            costPerKg: newCostPerKg
+          });
+        }
+
+        const expenseDescription = `Compra de ${formData.grams}g de filamento ${formData.filamentName} ${formData.filamentColor}`;
+        await addDoc(expensesCollection, {
+          description: expenseDescription,
+          amount: formData.amount,
+          date: new Date(formData.date).toISOString(),
+        });
+        
+        toast({ title: "Gasto y filamento registrados" });
+
+      } catch (error: any) {
+        console.error("Error processing filament purchase:", error);
+        toast({ variant: "destructive", title: "Error", description: error.message || "No se pudo registrar la compra del filamento." });
+      }
+
+    } else {
+      if (!formData.description || formData.amount <= 0) {
+        toast({ variant: "destructive", title: "Error", description: "La descripción y una cantidad válida son obligatorias." });
+        return;
+      }
+      const newExpenseData = {
+        description: formData.description,
+        amount: formData.amount,
+        date: new Date(formData.date).toISOString(),
+      };
+      addDocumentNonBlocking(expensesCollection, newExpenseData);
+    }
+
     setIsSheetOpen(false);
-    setFormData(defaultExpenseForm);
+    resetForm();
   };
 
   const sortedExpenses = React.useMemo(() => {
@@ -140,12 +229,9 @@ export default function ExpensesPage() {
         )
       : [];
   }, [expenses]);
-  
+
   const formatDateForDisplay = (isoString: string) => {
-    if (!isoString) return '';
-    // The date from Firestore is a string that gets parsed as UTC.
-    // To display it correctly in the user's timezone without it shifting
-    // to the previous day, we need to create a new Date from its UTC parts.
+    if (!isoString) return "";
     const date = new Date(isoString);
     const year = date.getUTCFullYear();
     const month = date.getUTCMonth();
@@ -153,7 +239,6 @@ export default function ExpensesPage() {
     const correctedDate = new Date(year, month, day);
     return correctedDate.toLocaleDateString();
   };
-
 
   return (
     <>
@@ -314,7 +399,7 @@ export default function ExpensesPage() {
         open={isSheetOpen}
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
-          if (!isOpen) setFormData(defaultExpenseForm);
+          if (!isOpen) resetForm();
         }}
       >
         <SheetContent>
@@ -327,33 +412,120 @@ export default function ExpensesPage() {
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">
-                  Descripción
+                <Label htmlFor="expenseType" className="text-right">
+                  Tipo
                 </Label>
-                <Input
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  required
-                />
+                <Select
+                  value={expenseType}
+                  onValueChange={(v: "general" | "filament") =>
+                    setExpenseType(v)
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">Gasto General</SelectItem>
+                    <SelectItem value="filament">Compra de Filamento</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">
-                  Cantidad
-                </Label>
-                <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
+
+              {expenseType === "general" && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="description" className="text-right">
+                      Descripción
+                    </Label>
+                    <Input
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="amount" className="text-right">
+                      Cantidad
+                    </Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              {expenseType === "filament" && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="filamentName" className="text-right">
+                      Nombre Filamento
+                    </Label>
+                    <Input
+                      id="filamentName"
+                      name="filamentName"
+                      value={formData.filamentName}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      required
+                      placeholder="Ej: PLA, PETG"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="filamentColor" className="text-right">
+                      Color
+                    </Label>
+                    <Input
+                      id="filamentColor"
+                      name="filamentColor"
+                      value={formData.filamentColor}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      required
+                      placeholder="Ej: Rojo, Negro"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="grams" className="text-right">
+                      Gramos
+                    </Label>
+                    <Input
+                      id="grams"
+                      name="grams"
+                      type="number"
+                      value={formData.grams}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      required
+                      placeholder="Ej: 1000 para 1kg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="amount" className="text-right">
+                      Costo Total
+                    </Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                </>
+              )}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">
                   Fecha
@@ -370,9 +542,7 @@ export default function ExpensesPage() {
               </div>
             </div>
             <SheetFooter>
-              <Button type="submit">
-                Crear Gasto
-              </Button>
+              <Button type="submit">Crear Gasto</Button>
             </SheetFooter>
           </form>
         </SheetContent>
