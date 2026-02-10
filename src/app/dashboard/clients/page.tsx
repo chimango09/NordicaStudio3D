@@ -47,6 +47,15 @@ import type { Client } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
+type ClientFormData = Omit<Client, "id">;
+
+const defaultClientForm: ClientFormData = {
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+};
+
 export default function ClientsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -58,20 +67,26 @@ export default function ClientsPage() {
   const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingClientId, setEditingClientId] = React.useState<string | null>(null);
+  const [editingClientId, setEditingClientId] = React.useState<string | null>(
+    null
+  );
+  const [formData, setFormData] = React.useState<ClientFormData>(defaultClientForm);
 
-  const editingClient = React.useMemo(() => {
-    if (!editingClientId || !clients) return null;
-    return clients.find(c => c.id === editingClientId) ?? null;
-  }, [editingClientId, clients]);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleAddClient = () => {
     setEditingClientId(null);
+    setFormData(defaultClientForm);
     setIsSheetOpen(true);
   };
 
   const handleEditClient = (client: Client) => {
     setEditingClientId(client.id);
+    const { id, ...clientData } = client;
+    setFormData(clientData);
     setIsSheetOpen(true);
   };
 
@@ -93,25 +108,26 @@ export default function ClientsPage() {
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const clientsCollection = user ? collection(firestore, `users/${user.uid}/clients`) : null;
+    const clientsCollection = user
+      ? collection(firestore, `users/${user.uid}/clients`)
+      : null;
     if (!user || !clientsCollection) return;
 
-    const formData = new FormData(event.currentTarget);
-    const clientData = {
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      address: formData.get("address") as string,
-    };
+    const clientData = formData;
 
     if (editingClientId) {
-      const clientDoc = doc(firestore, "users", user.uid, "clients", editingClientId);
+      const clientDoc = doc(
+        firestore,
+        "users",
+        user.uid,
+        "clients",
+        editingClientId
+      );
       setDocumentNonBlocking(clientDoc, clientData, { merge: true });
     } else {
       addDocumentNonBlocking(clientsCollection, clientData);
     }
     setIsSheetOpen(false);
-    setEditingClientId(null);
   };
 
   return (
@@ -292,16 +308,19 @@ export default function ClientsPage() {
         open={isSheetOpen}
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
-          if (!isOpen) setEditingClientId(null);
+          if (!isOpen) {
+            setEditingClientId(null);
+            setFormData(defaultClientForm);
+          }
         }}
       >
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
-              {editingClient ? "Editar Cliente" : "Añadir Nuevo Cliente"}
+              {editingClientId ? "Editar Cliente" : "Añadir Nuevo Cliente"}
             </SheetTitle>
             <SheetDescription>
-              {editingClient
+              {editingClientId
                 ? "Actualiza la información de este cliente."
                 : "Rellena los detalles para el nuevo cliente."}
             </SheetDescription>
@@ -315,7 +334,8 @@ export default function ClientsPage() {
                 <Input
                   id="name"
                   name="name"
-                  defaultValue={editingClient?.name}
+                  value={formData.name}
+                  onChange={handleInputChange}
                   className="col-span-3"
                   required
                 />
@@ -328,7 +348,8 @@ export default function ClientsPage() {
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue={editingClient?.email}
+                  value={formData.email || ""}
+                  onChange={handleInputChange}
                   className="col-span-3"
                 />
               </div>
@@ -339,7 +360,8 @@ export default function ClientsPage() {
                 <Input
                   id="phone"
                   name="phone"
-                  defaultValue={editingClient?.phone}
+                  value={formData.phone || ""}
+                  onChange={handleInputChange}
                   className="col-span-3"
                 />
               </div>
@@ -350,14 +372,15 @@ export default function ClientsPage() {
                 <Input
                   id="address"
                   name="address"
-                  defaultValue={editingClient?.address}
+                  value={formData.address || ""}
+                  onChange={handleInputChange}
                   className="col-span-3"
                 />
               </div>
             </div>
             <SheetFooter>
               <Button type="submit">
-                {editingClient ? "Guardar Cambios" : "Crear Cliente"}
+                {editingClientId ? "Guardar Cambios" : "Crear Cliente"}
               </Button>
             </SheetFooter>
           </form>

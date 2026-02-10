@@ -48,6 +48,14 @@ import { useSettings } from "@/hooks/use-settings";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
+type ExpenseFormData = Omit<Expense, "id">;
+
+const defaultExpenseForm: ExpenseFormData = {
+  description: "",
+  amount: 0,
+  date: new Date().toISOString().split("T")[0],
+};
+
 export default function ExpensesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -60,20 +68,36 @@ export default function ExpensesPage() {
   const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingExpenseId, setEditingExpenseId] = React.useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = React.useState<
+    string | null
+  >(null);
+  const [formData, setFormData] =
+    React.useState<ExpenseFormData>(defaultExpenseForm);
 
-  const editingExpense = React.useMemo(() => {
-    if (!editingExpenseId || !expenses) return null;
-    return expenses.find(e => e.id === editingExpenseId) ?? null;
-  }, [editingExpenseId, expenses]);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "number" ? parseFloat(value) || 0 : value,
+    }));
+  };
 
   const handleAddExpense = () => {
     setEditingExpenseId(null);
+    setFormData({
+      ...defaultExpenseForm,
+      date: new Date().toISOString().split("T")[0],
+    });
     setIsSheetOpen(true);
   };
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpenseId(expense.id);
+    const { id, ...expenseData } = expense;
+    setFormData({
+      ...expenseData,
+      date: expense.date.split("T")[0],
+    });
     setIsSheetOpen(true);
   };
 
@@ -101,14 +125,14 @@ export default function ExpensesPage() {
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const expensesCollection = user ? collection(firestore, `users/${user.uid}/expenses`) : null;
+    const expensesCollection = user
+      ? collection(firestore, `users/${user.uid}/expenses`)
+      : null;
     if (!user || !expensesCollection) return;
 
-    const formData = new FormData(event.currentTarget);
     const newExpenseData = {
-      description: formData.get("description") as string,
-      amount: parseFloat(formData.get("amount") as string),
-      date: new Date(formData.get("date") as string).toISOString(),
+      ...formData,
+      date: new Date(formData.date).toISOString(),
     };
 
     if (editingExpenseId) {
@@ -124,7 +148,6 @@ export default function ExpensesPage() {
       addDocumentNonBlocking(expensesCollection, newExpenseData);
     }
     setIsSheetOpen(false);
-    setEditingExpenseId(null);
   };
 
   const sortedExpenses = React.useMemo(() => {
@@ -310,10 +333,10 @@ export default function ExpensesPage() {
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
-              {editingExpense ? "Editar Gasto" : "Añadir Nuevo Gasto"}
+              {editingExpenseId ? "Editar Gasto" : "Añadir Nuevo Gasto"}
             </SheetTitle>
             <SheetDescription>
-              {editingExpense
+              {editingExpenseId
                 ? "Actualiza los detalles de este gasto."
                 : "Rellena los detalles para el nuevo gasto."}
             </SheetDescription>
@@ -327,7 +350,8 @@ export default function ExpensesPage() {
                 <Input
                   id="description"
                   name="description"
-                  defaultValue={editingExpense?.description}
+                  value={formData.description}
+                  onChange={handleInputChange}
                   className="col-span-3"
                   required
                 />
@@ -341,7 +365,8 @@ export default function ExpensesPage() {
                   name="amount"
                   type="number"
                   step="0.01"
-                  defaultValue={editingExpense?.amount}
+                  value={formData.amount}
+                  onChange={handleInputChange}
                   className="col-span-3"
                   required
                 />
@@ -354,11 +379,8 @@ export default function ExpensesPage() {
                   id="date"
                   name="date"
                   type="date"
-                  defaultValue={
-                    editingExpense?.date
-                      ? editingExpense.date.split("T")[0]
-                      : new Date().toISOString().split("T")[0]
-                  }
+                  value={formData.date}
+                  onChange={handleInputChange}
                   className="col-span-3"
                   required
                 />
@@ -366,7 +388,7 @@ export default function ExpensesPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                {editingExpense ? "Guardar Cambios" : "Crear Gasto"}
+                {editingExpenseId ? "Guardar Cambios" : "Crear Gasto"}
               </Button>
             </SheetFooter>
           </form>
