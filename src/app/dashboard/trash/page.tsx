@@ -55,9 +55,11 @@ const collectionDisplayNames: { [key: string]: string } = {
 export default function TrashPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+
+  const trashQueryKey = user ? `users/${user.uid}/trash` : null;
   const trashCollection = React.useMemo(
-    () => (user ? collection(firestore, "users", user.uid, "trash") : null),
-    [firestore, user?.uid]
+    () => (trashQueryKey ? collection(firestore, trashQueryKey) : null),
+    [firestore, trashQueryKey]
   );
   const { data: trashItems, isLoading } = useCollection<TrashItem>(
     trashCollection

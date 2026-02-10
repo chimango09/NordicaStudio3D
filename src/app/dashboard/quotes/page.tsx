@@ -90,16 +90,20 @@ export default function QuotesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesCollection = React.useMemo(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user?.uid]);
+  const quotesQueryKey = user ? `users/${user.uid}/quotes` : null;
+  const quotesCollection = React.useMemo(() => (quotesQueryKey ? collection(firestore, quotesQueryKey) : null), [firestore, quotesQueryKey]);
   const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
 
-  const clientsCollection = React.useMemo(() => (user ? collection(firestore, 'users', user.uid, "clients") : null), [firestore, user?.uid]);
+  const clientsQueryKey = user ? `users/${user.uid}/clients` : null;
+  const clientsCollection = React.useMemo(() => (clientsQueryKey ? collection(firestore, clientsQueryKey) : null), [firestore, clientsQueryKey]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
 
-  const filamentsCollection = React.useMemo(() => (user ? collection(firestore, 'users', user.uid, "filaments") : null), [firestore, user?.uid]);
+  const filamentsQueryKey = user ? `users/${user.uid}/filaments` : null;
+  const filamentsCollection = React.useMemo(() => (filamentsQueryKey ? collection(firestore, filamentsQueryKey) : null), [firestore, filamentsQueryKey]);
   const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
   
-  const accessoriesCollection = React.useMemo(() => (user ? collection(firestore, 'users', user.uid, "accessories") : null), [firestore, user?.uid]);
+  const accessoriesQueryKey = user ? `users/${user.uid}/accessories` : null;
+  const accessoriesCollection = React.useMemo(() => (accessoriesQueryKey ? collection(firestore, accessoriesQueryKey) : null), [firestore, accessoriesQueryKey]);
   const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesCollection);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);

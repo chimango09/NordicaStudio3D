@@ -51,9 +51,10 @@ export default function ClientsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
+  const clientsQueryKey = user ? `users/${user.uid}/clients` : null;
   const clientsCollection = React.useMemo(
-    () => (user ? collection(firestore, "users", user.uid, "clients") : null),
-    [firestore, user?.uid]
+    () => (clientsQueryKey ? collection(firestore, clientsQueryKey) : null),
+    [firestore, clientsQueryKey]
   );
   const { data: clients, isLoading } = useCollection<Client>(clientsCollection);
 

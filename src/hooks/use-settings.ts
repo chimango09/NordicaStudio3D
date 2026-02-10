@@ -23,7 +23,10 @@ const DEFAULT_SETTINGS: Settings = {
 export function useSettings() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const settingsCollection = useMemo(() => user ? collection(firestore, 'users', user.uid, 'settings') : null, [firestore, user?.uid]);
+  
+  const settingsQueryKey = user ? `users/${user.uid}/settings` : null;
+  const settingsCollection = useMemo(() => settingsQueryKey ? collection(firestore, settingsQueryKey) : null, [firestore, settingsQueryKey]);
+  
   const { data: settingsData, isLoading, error } = useCollection<Setting>(settingsCollection);
 
   const settings = useMemo(() => {

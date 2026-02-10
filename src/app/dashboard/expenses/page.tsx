@@ -53,9 +53,10 @@ export default function ExpensesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
+  const expensesQueryKey = user ? `users/${user.uid}/expenses` : null;
   const expensesCollection = React.useMemo(
-    () => (user ? collection(firestore, "users", user.uid, "expenses") : null),
-    [firestore, user?.uid]
+    () => (expensesQueryKey ? collection(firestore, expensesQueryKey) : null),
+    [firestore, expensesQueryKey]
   );
   const { data: expenses, isLoading } = useCollection<Expense>(
     expensesCollection

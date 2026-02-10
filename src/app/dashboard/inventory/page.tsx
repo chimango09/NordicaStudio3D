@@ -47,17 +47,18 @@ export default function InventoryPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
+  const filamentsQueryKey = user ? `users/${user.uid}/filaments` : null;
   const filamentsCollection = React.useMemo(
-    () => (user ? collection(firestore, "users", user.uid, "filaments") : null),
-    [firestore, user?.uid]
+    () => (filamentsQueryKey ? collection(firestore, filamentsQueryKey) : null),
+    [firestore, filamentsQueryKey]
   );
   const { data: filaments, isLoading: isLoadingFilaments } =
     useCollection<Filament>(filamentsCollection);
-
+  
+  const accessoriesQueryKey = user ? `users/${user.uid}/accessories` : null;
   const accessoriesCollection = React.useMemo(
-    () =>
-      user ? collection(firestore, "users", user.uid, "accessories") : null,
-    [firestore, user?.uid]
+    () => (accessoriesQueryKey ? collection(firestore, accessoriesQueryKey) : null),
+    [firestore, accessoriesQueryKey]
   );
   const { data: accessories, isLoading: isLoadingAccessories } =
     useCollection<Accessory>(accessoriesCollection);

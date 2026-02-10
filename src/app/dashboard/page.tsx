@@ -47,10 +47,12 @@ export default function DashboardPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesCollection = React.useMemo(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user?.uid]);
+  const quotesQueryKey = user ? `users/${user.uid}/quotes` : null;
+  const quotesCollection = React.useMemo(() => (quotesQueryKey ? collection(firestore, quotesQueryKey) : null), [firestore, quotesQueryKey]);
   const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
 
-  const expensesCollection = React.useMemo(() => (user ? collection(firestore, 'users', user.uid, "expenses") : null), [firestore, user?.uid]);
+  const expensesQueryKey = user ? `users/${user.uid}/expenses` : null;
+  const expensesCollection = React.useMemo(() => (expensesQueryKey ? collection(firestore, expensesQueryKey) : null), [firestore, expensesQueryKey]);
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesCollection);
   
   const isLoading = isLoadingQuotes || isLoadingExpenses;
