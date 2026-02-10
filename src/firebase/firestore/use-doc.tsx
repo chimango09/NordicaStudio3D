@@ -1,12 +1,13 @@
 'use client';
     
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   onSnapshot,
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
   doc,
+  DocumentReference,
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase'; // Using the barrel file
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -27,7 +28,7 @@ export interface UseDocResult<T> {
 
 /**
  * React hook to subscribe to a single Firestore document in real-time.
- * It memoizes the document reference to prevent re-subscribing on every render.
+ * It now uses a standard useEffect dependency array to manage subscriptions correctly.
  *
  * @template T Optional type for document data. Defaults to any.
  * @param {string | null | undefined} path - The string path to the Firestore document.
@@ -43,19 +44,8 @@ export function useDoc<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  // Memoize the document reference. This is the key to preventing infinite loops.
-  const docRef = useMemo(() => {
-    if (!path || !firestore) return null;
-     try {
-        return doc(firestore, path);
-    } catch (e) {
-        console.error("Error creating document reference:", e);
-        return null;
-    }
-  }, [path, firestore]);
-
   useEffect(() => {
-    if (!docRef) {
+    if (!path || !firestore) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -64,6 +54,16 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
+
+    let docRef: DocumentReference;
+    try {
+        docRef = doc(firestore, path);
+    } catch (e: any) {
+        console.error("Error creating document reference:", e);
+        setError(e);
+        setIsLoading(false);
+        return;
+    }
 
     const unsubscribe = onSnapshot(
       docRef,
@@ -91,7 +91,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [docRef]);
+  }, [path, firestore]);
 
   return { data, isLoading, error };
 }

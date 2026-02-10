@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   onSnapshot,
   DocumentData,
   FirestoreError,
   QuerySnapshot,
   collection,
+  CollectionReference,
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase'; // Using the barrel file
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -27,7 +28,7 @@ export interface UseCollectionResult<T> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * It memoizes the collection reference to prevent re-subscribing on every render.
+ * It now uses a standard useEffect dependency array to manage subscriptions correctly.
  *
  * @template T Optional type for document data. Defaults to any.
  * @param {string | null | undefined} path - The string path to the Firestore collection.
@@ -44,20 +45,8 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  // Memoize the collection reference. This is the key to preventing infinite loops.
-  // The reference is only re-created if the path or the firestore instance changes.
-  const collectionRef = useMemo(() => {
-    if (!path || !firestore) return null;
-    try {
-        return collection(firestore, path);
-    } catch (e) {
-        console.error("Error creating collection reference:", e);
-        return null;
-    }
-  }, [path, firestore]);
-
   useEffect(() => {
-    if (!collectionRef) {
+    if (!path || !firestore) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -66,6 +55,16 @@ export function useCollection<T = any>(
 
     setIsLoading(true);
     setError(null);
+
+    let collectionRef: CollectionReference;
+    try {
+        collectionRef = collection(firestore, path);
+    } catch (e: any) {
+        console.error("Error creating collection reference:", e);
+        setError(e);
+        setIsLoading(false);
+        return;
+    }
 
     const unsubscribe = onSnapshot(
       collectionRef,
@@ -91,7 +90,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [collectionRef]);
+  }, [path, firestore]);
 
   return { data, isLoading, error };
 }
