@@ -40,7 +40,6 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
-  setDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import type { Client } from "@/lib/types";
@@ -67,9 +66,6 @@ export default function ClientsPage() {
   const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingClientId, setEditingClientId] = React.useState<string | null>(
-    null
-  );
   const [formData, setFormData] = React.useState<ClientFormData>(defaultClientForm);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,15 +74,7 @@ export default function ClientsPage() {
   };
 
   const handleAddClient = () => {
-    setEditingClientId(null);
     setFormData(defaultClientForm);
-    setIsSheetOpen(true);
-  };
-
-  const handleEditClient = (client: Client) => {
-    setEditingClientId(client.id);
-    const { id, ...clientData } = client;
-    setFormData(clientData);
     setIsSheetOpen(true);
   };
 
@@ -113,21 +101,9 @@ export default function ClientsPage() {
       : null;
     if (!user || !clientsCollection) return;
 
-    const clientData = formData;
-
-    if (editingClientId) {
-      const clientDoc = doc(
-        firestore,
-        "users",
-        user.uid,
-        "clients",
-        editingClientId
-      );
-      setDocumentNonBlocking(clientDoc, clientData, { merge: true });
-    } else {
-      addDocumentNonBlocking(clientsCollection, clientData);
-    }
+    addDocumentNonBlocking(clientsCollection, formData);
     setIsSheetOpen(false);
+    setFormData(defaultClientForm);
   };
 
   return (
@@ -180,11 +156,6 @@ export default function ClientsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleEditClient(client)}
-                        >
-                          Editar
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteClient(client.id)}
                           className="text-destructive"
@@ -277,11 +248,6 @@ export default function ClientsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem
-                              onClick={() => handleEditClient(client)}
-                            >
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               onClick={() => handleDeleteClient(client.id)}
                               className="text-destructive"
                             >
@@ -309,20 +275,15 @@ export default function ClientsPage() {
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
           if (!isOpen) {
-            setEditingClientId(null);
             setFormData(defaultClientForm);
           }
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>
-              {editingClientId ? "Editar Cliente" : "Añadir Nuevo Cliente"}
-            </SheetTitle>
+            <SheetTitle>Añadir Nuevo Cliente</SheetTitle>
             <SheetDescription>
-              {editingClientId
-                ? "Actualiza la información de este cliente."
-                : "Rellena los detalles para el nuevo cliente."}
+              Rellena los detalles para el nuevo cliente.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
@@ -380,7 +341,7 @@ export default function ClientsPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                {editingClientId ? "Guardar Cambios" : "Crear Cliente"}
+                Crear Cliente
               </Button>
             </SheetFooter>
           </form>

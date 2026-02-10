@@ -40,7 +40,6 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
-  setDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import type { Expense } from "@/lib/types";
@@ -68,9 +67,6 @@ export default function ExpensesPage() {
   const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingExpenseId, setEditingExpenseId] = React.useState<
-    string | null
-  >(null);
   const [formData, setFormData] =
     React.useState<ExpenseFormData>(defaultExpenseForm);
 
@@ -83,20 +79,9 @@ export default function ExpensesPage() {
   };
 
   const handleAddExpense = () => {
-    setEditingExpenseId(null);
     setFormData({
       ...defaultExpenseForm,
       date: new Date().toISOString().split("T")[0],
-    });
-    setIsSheetOpen(true);
-  };
-
-  const handleEditExpense = (expense: Expense) => {
-    setEditingExpenseId(expense.id);
-    const { id, ...expenseData } = expense;
-    setFormData({
-      ...expenseData,
-      date: expense.date.split("T")[0],
     });
     setIsSheetOpen(true);
   };
@@ -135,19 +120,9 @@ export default function ExpensesPage() {
       date: new Date(formData.date).toISOString(),
     };
 
-    if (editingExpenseId) {
-      const expenseDoc = doc(
-        firestore,
-        "users",
-        user.uid,
-        "expenses",
-        editingExpenseId
-      );
-      setDocumentNonBlocking(expenseDoc, newExpenseData, { merge: true });
-    } else {
-      addDocumentNonBlocking(expensesCollection, newExpenseData);
-    }
+    addDocumentNonBlocking(expensesCollection, newExpenseData);
     setIsSheetOpen(false);
+    setFormData(defaultExpenseForm);
   };
 
   const sortedExpenses = React.useMemo(() => {
@@ -210,11 +185,6 @@ export default function ExpensesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleEditExpense(expense)}
-                        >
-                          Editar
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteExpense(expense.id)}
                           className="text-destructive"
@@ -296,11 +266,6 @@ export default function ExpensesPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem
-                              onClick={() => handleEditExpense(expense)}
-                            >
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               onClick={() => handleDeleteExpense(expense.id)}
                               className="text-destructive"
                             >
@@ -327,18 +292,14 @@ export default function ExpensesPage() {
         open={isSheetOpen}
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
-          if (!isOpen) setEditingExpenseId(null);
+          if (!isOpen) setFormData(defaultExpenseForm);
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>
-              {editingExpenseId ? "Editar Gasto" : "Añadir Nuevo Gasto"}
-            </SheetTitle>
+            <SheetTitle>Añadir Nuevo Gasto</SheetTitle>
             <SheetDescription>
-              {editingExpenseId
-                ? "Actualiza los detalles de este gasto."
-                : "Rellena los detalles para el nuevo gasto."}
+              Rellena los detalles para el nuevo gasto.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
@@ -388,7 +349,7 @@ export default function ExpensesPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                {editingExpenseId ? "Guardar Cambios" : "Crear Gasto"}
+                Crear Gasto
               </Button>
             </SheetFooter>
           </form>
