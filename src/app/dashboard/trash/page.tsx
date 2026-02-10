@@ -31,18 +31,14 @@ import {
   deleteDoc,
   setDoc,
   increment,
+  updateDoc,
 } from "firebase/firestore";
-import {
-  useFirestore,
-  useCollection,
-  deleteDocumentNonBlocking,
-  updateDocumentNonBlocking,
-  useUser,
-} from "@/firebase";
+import { useFirestore, useCollection, useUser } from "@/firebase";
 import type { TrashItem, Quote } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 const collectionDisplayNames: { [key: string]: string } = {
   clients: "Cliente",
@@ -55,6 +51,7 @@ const collectionDisplayNames: { [key: string]: string } = {
 export default function TrashPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
 
   const trashQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
@@ -68,53 +65,96 @@ export default function TrashPage() {
 
   const handleRestoreItem = async (item: TrashItem) => {
     if (!user) return;
-    const originalDocRef = doc(
-      firestore,
-      "users",
-      user.uid,
-      item.originalCollection,
-      item.originalId
-    );
-    await setDoc(originalDocRef, item.data);
+    try {
+      const originalDocRef = doc(
+        firestore,
+        "users",
+        user.uid,
+        item.originalCollection,
+        item.originalId
+      );
+      await setDoc(originalDocRef, item.data);
 
-    const trashDocRef = doc(firestore, "users", user.uid, "trash", item.id);
-    await deleteDoc(trashDocRef);
+      const trashDocRef = doc(firestore, "users", user.uid, "trash", item.id);
+      await deleteDoc(trashDocRef);
+      toast({ title: "Elemento Restaurado" });
+    } catch (error) {
+      console.error("Error restoring item:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo restaurar el elemento.",
+      });
+    }
   };
 
-  const handlePermanentDelete = (item: TrashItem) => {
+  const handlePermanentDelete = async (item: TrashItem) => {
     if (!user) return;
-    const trashDocRef = doc(firestore, "users", user.uid, "trash", item.id);
-    deleteDocumentNonBlocking(trashDocRef);
 
-    // If deleting a quote, return stock only if the quote was pending
-    if (item.originalCollection === "quotes") {
-      const quoteData = item.data as Quote;
-      if (quoteData.status === "Pendiente") {
-        (quoteData.materials || []).forEach((mat) => {
-          const filamentDoc = doc(
-            firestore,
-            "users",
-            user.uid,
-            "filaments",
-            mat.filamentId
-          );
-          updateDocumentNonBlocking(filamentDoc, {
-            stockLevel: increment(mat.grams),
+    try {
+      // If deleting a quote that was pending, return stock first.
+      if (item.originalCollection === "quotes") {
+        const quoteData = item.data as Quote;
+        if (quoteData.status === "Pendiente") {
+          const stockUpdates: Promise<void>[] = [];
+
+          (quoteData.materials || []).forEach((mat) => {
+            if (mat.filamentId && mat.grams > 0) {
+              const filamentDocRef = doc(
+                firestore,
+                "users",
+                user.uid,
+                "filaments",
+                mat.filamentId
+              );
+              stockUpdates.push(
+                updateDoc(filamentDocRef, { stockLevel: increment(mat.grams) })
+              );
+            }
           });
-        });
-        (quoteData.accessories || []).forEach((acc) => {
-          const accessoryDoc = doc(
-            firestore,
-            "users",
-            user.uid,
-            "accessories",
-            acc.accessoryId
-          );
-          updateDocumentNonBlocking(accessoryDoc, {
-            stockLevel: increment(acc.quantity),
+
+          (quoteData.accessories || []).forEach((acc) => {
+            if (acc.accessoryId && acc.quantity > 0) {
+              const accessoryDocRef = doc(
+                firestore,
+                "users",
+                user.uid,
+                "accessories",
+                acc.accessoryId
+              );
+              stockUpdates.push(
+                updateDoc(accessoryDocRef, {
+                  stockLevel: increment(acc.quantity),
+                })
+              );
+            }
           });
-        });
+
+          if (stockUpdates.length > 0) {
+            await Promise.all(stockUpdates);
+            toast({
+              title: "Stock Restaurado",
+              description:
+                "Los materiales de la cotización han sido devueltos al inventario.",
+            });
+          }
+        }
       }
+
+      // After stock is returned (if applicable), delete the item from trash.
+      const trashDocRef = doc(firestore, "users", user.uid, "trash", item.id);
+      await deleteDoc(trashDocRef);
+
+      toast({
+        title: "Elemento Eliminado Permanentemente",
+      });
+    } catch (error) {
+      console.error("Error during permanent delete:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el elemento o restaurar el stock.",
+      });
     }
   };
 
