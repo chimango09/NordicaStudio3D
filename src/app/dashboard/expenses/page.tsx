@@ -52,7 +52,6 @@ import {
   query,
   where,
   updateDoc,
-  increment,
 } from "firebase/firestore";
 import {
   useFirestore,
@@ -192,16 +191,38 @@ export default function ExpensesPage() {
 
       try {
         const querySnapshot = await getDocs(q);
-        const newCostPerKg = (formData.amount / formData.grams) * 1000;
 
         if (!querySnapshot.empty) {
+          // Filament exists, update it with weighted average cost
           const filamentDoc = querySnapshot.docs[0];
+          const existingFilament = filamentDoc.data() as Filament;
+          
+          const existingStockInG = existingFilament.stockLevel;
+          const existingCostPerKg = existingFilament.costPerKg;
+
+          // Calculate total value of existing stock
+          const existingTotalValue = (existingCostPerKg / 1000) * existingStockInG;
+          
+          // New stock values
+          const newStockInG = formData.grams;
+          const newStockValue = formData.amount;
+
+          // Calculate new totals
+          const newTotalStockInG = existingStockInG + newStockInG;
+          const newTotalValue = existingTotalValue + newStockValue;
+
+          // Calculate new weighted average cost per kg, avoiding division by zero.
+          const newAverageCostPerKg = newTotalStockInG > 0 ? (newTotalValue / newTotalStockInG) * 1000 : 0;
+          
           const filamentRef = doc(firestore, `users/${user.uid}/filaments`, filamentDoc.id);
           await updateDoc(filamentRef, {
-            stockLevel: increment(formData.grams),
-            costPerKg: newCostPerKg 
+            stockLevel: newTotalStockInG,
+            costPerKg: newAverageCostPerKg 
           });
+
         } else {
+          // New filament, calculate costPerKg directly
+          const newCostPerKg = formData.grams > 0 ? (formData.amount / formData.grams) * 1000 : 0;
           await addDoc(filamentsCollection, {
             name: formData.filamentName,
             color: formData.filamentColor,
