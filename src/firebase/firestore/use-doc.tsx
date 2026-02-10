@@ -10,7 +10,6 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { usePrevious } from '@/hooks/use-previous';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -31,7 +30,7 @@ export interface UseDocResult<T> {
  *
  * @template T Optional type for document data. Defaults to any.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
- * The Firestore DocumentReference. Waits if null/undefined.
+ * The Firestore DocumentReference. It is crucial that this object is memoized to avoid re-subscribing on every render.
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
@@ -42,18 +41,12 @@ export function useDoc<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  const prevDocRef = usePrevious(docRef);
 
   useEffect(() => {
     if (!docRef) {
       setData(null);
       setIsLoading(false);
       setError(null);
-      return;
-    }
-
-    // If the docRef is the same as before, no need to re-subscribe
-    if (prevDocRef && docRef && prevDocRef.isEqual(docRef)) {
       return;
     }
 

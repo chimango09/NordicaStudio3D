@@ -11,7 +11,6 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { usePrevious } from '@/hooks/use-previous';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -44,7 +43,7 @@ export interface InternalQuery extends Query<DocumentData> {
  * 
  * @template T Optional type for document data. Defaults to any.
  * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
- * The Firestore CollectionReference or Query. Waits if null/undefined.
+ * The Firestore CollectionReference or Query. It is crucial that this object is memoized to avoid re-subscribing on every render.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
 export function useCollection<T = any>(
@@ -56,18 +55,12 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  const prevQuery = usePrevious(targetRefOrQuery);
 
   useEffect(() => {
     if (!targetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
-      return;
-    }
-    
-    // If the query is the same as before, no need to re-subscribe
-    if (prevQuery && targetRefOrQuery && prevQuery.isEqual(targetRefOrQuery)) {
       return;
     }
 
