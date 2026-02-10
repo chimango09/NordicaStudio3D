@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Trash2, FileDown } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, FileDown, Calendar as CalendarIcon } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { format } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -71,6 +72,9 @@ import type { Quote, Client, Filament, Accessory, QuoteMaterial, QuoteAccessory 
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 type QuoteWithClientName = Quote & { clientName: string; id: string };
 
@@ -137,6 +141,7 @@ export default function QuotesPage() {
     description: "",
     materials: [] as FormMaterial[],
     accessories: [] as FormAccessory[],
+    date: new Date(),
   });
   const [itemKey, setItemKey] = React.useState(0);
   const [calculatedPrice, setCalculatedPrice] = React.useState(0);
@@ -152,7 +157,7 @@ export default function QuotesPage() {
   }, [calculatedPrice, formValues]);
   
   const resetForm = () => {
-    setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [] });
+    setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [], date: new Date() });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
   };
@@ -223,7 +228,7 @@ export default function QuotesPage() {
       accessories: finalAccessories,
       price: calculatedPrice,
       status: 'Pendiente' as const,
-      date: new Date().toISOString(),
+      date: formValues.date.toISOString(),
       ...costs,
     };
     
@@ -273,6 +278,16 @@ export default function QuotesPage() {
   
   const calculateTotalCost = (quote: Quote) => (quote.materialCost || 0) + (quote.accessoryCost || 0) + (quote.machineCost || 0) + (quote.electricityCost || 0);
   const calculateProfit = (quote: Quote) => quote.price - calculateTotalCost(quote);
+  
+  const formatDateForDisplay = (isoString: string) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    const day = date.getUTCDate();
+    const correctedDate = new Date(year, month, day);
+    return correctedDate.toLocaleDateString();
+  };
 
   const handleDownloadPdf = (quote: QuoteWithClientName) => {
     const doc = new jsPDF();
@@ -321,7 +336,7 @@ export default function QuotesPage() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text(`Número: ${quote.id.substring(0, 8).toUpperCase()}`, 190, 27, { align: 'right' });
-    doc.text(`Fecha: ${new Date(quote.date).toLocaleDateString()}`, 190, 34, { align: 'right' });
+    doc.text(`Fecha: ${formatDateForDisplay(quote.date)}`, 190, 34, { align: 'right' });
 
     const emitterBlockHeight = 30; // Approx height of the text block
     const lineY = startYPos + Math.max(logoHeight, emitterBlockHeight) + 7;
@@ -483,7 +498,7 @@ export default function QuotesPage() {
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
                             <CardTitle className="text-base font-medium">{quote.clientName}</CardTitle>
-                            <CardDescription>{new Date(quote.date).toLocaleDateString()}</CardDescription>
+                            <CardDescription>{formatDateForDisplay(quote.date)}</CardDescription>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -531,7 +546,7 @@ export default function QuotesPage() {
                 {!isLoading && quotes.map((quote) => (
                     <TableRow key={quote.id}>
                     <TableCell className="font-medium">{quote.clientName}</TableCell>
-                    <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDateForDisplay(quote.date)}</TableCell>
                     <TableCell><Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge></TableCell>
                     <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
                     <TableCell>
@@ -573,6 +588,31 @@ export default function QuotesPage() {
           <SheetHeader><SheetTitle>Crear Nueva Cotización</SheetTitle><SheetDescription>Calcula el precio para un nuevo trabajo de impresión 3D.</SheetDescription></SheetHeader>
           <div className="grid gap-6 py-4">
             <div className="space-y-2"><Label htmlFor="client">Cliente</Label><Select required onValueChange={(val) => setFormValues(p => ({...p, clientId: val}))}><SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger><SelectContent>{clients?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Fecha</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formValues.date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formValues.date ? format(formValues.date, "PPP") : <span>Elige una fecha</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formValues.date}
+                    onSelect={(date) => setFormValues(p => ({...p, date: date || new Date()}))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="space-y-2"><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" placeholder="Descripción del trabajo..." onChange={(e) => setFormValues(p => ({...p, description: e.target.value}))} /></div>
 
             <div>
