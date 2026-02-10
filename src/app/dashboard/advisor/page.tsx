@@ -1,1 +1,5 @@
-// This file has been removed as the AI Advisor feature was disabled.
+import { redirect } from 'next/navigation';
+
+export default function AdvisorPage() {
+  redirect('/dashboard');
+}
