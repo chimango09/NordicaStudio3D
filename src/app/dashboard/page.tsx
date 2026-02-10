@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { DollarSign, Wallet, ReceiptText, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
-import { useCollection, useUser } from '@/firebase';
+import { useCollection, useUser, useFirestore } from '@/firebase';
 import { useSettings } from '@/hooks/use-settings';
 import type { Quote, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { collection } from 'firebase/firestore';
 
 const chartConfig = {
   revenue: {
@@ -43,13 +44,20 @@ const chartConfig = {
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const firestore = useFirestore();
   const { settings } = useSettings();
 
-  const quotesPath = user ? `users/${user.uid}/quotes` : null;
-  const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesPath);
+  const quotesQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'quotes');
+  }, [user, firestore]);
+  const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesQuery);
 
-  const expensesPath = user ? `users/${user.uid}/expenses` : null;
-  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesPath);
+  const expensesQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'expenses');
+  }, [user, firestore]);
+  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
   
   const isLoading = isLoadingQuotes || isLoadingExpenses;
 

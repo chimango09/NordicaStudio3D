@@ -9,7 +9,6 @@ import {
   doc,
   DocumentReference,
 } from 'firebase/firestore';
-import { useFirestore } from '@/firebase'; // Using the barrel file
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -31,13 +30,12 @@ export interface UseDocResult<T> {
  * It now uses a standard useEffect dependency array to manage subscriptions correctly.
  *
  * @template T Optional type for document data. Defaults to any.
- * @param {string | null | undefined} path - The string path to the Firestore document.
+ * @param {DocumentReference | null | undefined} docRef - The Firestore document reference to subscribe to.
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
-  path: string | null | undefined,
+  docRef: DocumentReference | null | undefined,
 ): UseDocResult<T> {
-  const firestore = useFirestore();
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
@@ -45,7 +43,7 @@ export function useDoc<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    if (!path || !firestore) {
+    if (!docRef) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -54,16 +52,6 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-
-    let docRef: DocumentReference;
-    try {
-        docRef = doc(firestore, path);
-    } catch (e: any) {
-        console.error("Error creating document reference:", e);
-        setError(e);
-        setIsLoading(false);
-        return;
-    }
 
     const unsubscribe = onSnapshot(
       docRef,
@@ -91,7 +79,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [path, firestore]);
+  }, [docRef]); // The dependency is now the memoized document reference object itself.
 
   return { data, isLoading, error };
 }

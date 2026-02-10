@@ -24,8 +24,11 @@ export function useSettings() {
   const firestore = useFirestore();
   const { user } = useUser();
   
-  const settingsPath = user ? `users/${user.uid}/settings` : null;
-  const { data: settingsData, isLoading, error } = useCollection<Setting>(settingsPath);
+  const settingsQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'settings');
+  }, [user, firestore]);
+  const { data: settingsData, isLoading, error } = useCollection<Setting>(settingsQuery);
 
   const settings = useMemo(() => {
     if (!settingsData) {

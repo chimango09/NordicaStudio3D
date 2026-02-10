@@ -47,11 +47,17 @@ export default function InventoryPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const filamentsPath = user ? `users/${user.uid}/filaments` : null;
-  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsPath);
+  const filamentsQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, "users", user.uid, "filaments");
+  }, [user, firestore]);
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsQuery);
   
-  const accessoriesPath = user ? `users/${user.uid}/accessories` : null;
-  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesPath);
+  const accessoriesQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, "users", user.uid, "accessories");
+  }, [user, firestore]);
+  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
 
   const [isFilamentSheetOpen, setIsFilamentSheetOpen] = React.useState(false);
   const [editingFilament, setEditingFilament] =

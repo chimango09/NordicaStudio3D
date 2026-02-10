@@ -90,17 +90,29 @@ export default function QuotesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesPath = user ? `users/${user.uid}/quotes` : null;
-  const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesPath);
+  const quotesQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'quotes');
+  }, [user, firestore]);
+  const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesQuery);
 
-  const clientsPath = user ? `users/${user.uid}/clients` : null;
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsPath);
+  const clientsQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'clients');
+  }, [user, firestore]);
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
 
-  const filamentsPath = user ? `users/${user.uid}/filaments` : null;
-  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsPath);
+  const filamentsQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'filaments');
+  }, [user, firestore]);
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsQuery);
   
-  const accessoriesPath = user ? `users/${user.uid}/accessories` : null;
-  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesPath);
+  const accessoriesQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'accessories');
+  }, [user, firestore]);
+  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);

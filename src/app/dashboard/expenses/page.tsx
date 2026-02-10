@@ -53,8 +53,11 @@ export default function ExpensesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const expensesPath = user ? `users/${user.uid}/expenses` : null;
-  const { data: expenses, isLoading } = useCollection<Expense>(expensesPath);
+  const expensesQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, "users", user.uid, "expenses");
+  }, [user, firestore]);
+  const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(

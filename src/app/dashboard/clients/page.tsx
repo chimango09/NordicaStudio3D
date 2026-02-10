@@ -51,8 +51,11 @@ export default function ClientsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const clientsPath = user ? `users/${user.uid}/clients` : null;
-  const { data: clients, isLoading } = useCollection<Client>(clientsPath);
+  const clientsQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, "users", user.uid, "clients");
+  }, [user, firestore]);
+  const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingClient, setEditingClient] = React.useState<Client | null>(

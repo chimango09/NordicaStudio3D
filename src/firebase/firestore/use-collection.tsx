@@ -6,10 +6,9 @@ import {
   DocumentData,
   FirestoreError,
   QuerySnapshot,
-  collection,
+  Query,
   CollectionReference,
 } from 'firebase/firestore';
-import { useFirestore } from '@/firebase'; // Using the barrel file
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -31,13 +30,12 @@ export interface UseCollectionResult<T> {
  * It now uses a standard useEffect dependency array to manage subscriptions correctly.
  *
  * @template T Optional type for document data. Defaults to any.
- * @param {string | null | undefined} path - The string path to the Firestore collection.
+ * @param {Query | CollectionReference | null | undefined} query - The Firestore query or collection reference to subscribe to.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
 export function useCollection<T = any>(
-    path: string | null | undefined,
+    query: Query | CollectionReference | null | undefined,
 ): UseCollectionResult<T> {
-  const firestore = useFirestore();
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
 
@@ -46,7 +44,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    if (!path || !firestore) {
+    if (!query) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -56,18 +54,8 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    let collectionRef: CollectionReference;
-    try {
-        collectionRef = collection(firestore, path);
-    } catch (e: any) {
-        console.error("Error creating collection reference:", e);
-        setError(e);
-        setIsLoading(false);
-        return;
-    }
-
     const unsubscribe = onSnapshot(
-      collectionRef,
+      query,
       (snapshot: QuerySnapshot<DocumentData>) => {
         const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
         setData(results);
@@ -75,9 +63,11 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (snapshotError: FirestoreError) => {
+        // The path property exists on both Query and CollectionReference
+        const path = (query as CollectionReference).path;
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path: collectionRef.path,
+          path: path,
         });
 
         setError(contextualError);
@@ -90,7 +80,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [path, firestore]);
+  }, [query]); // The dependency is now the memoized query object itself.
 
   return { data, isLoading, error };
 }
