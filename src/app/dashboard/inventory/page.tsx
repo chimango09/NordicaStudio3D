@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -34,6 +34,7 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
@@ -66,23 +67,57 @@ export default function InventoryPage() {
     if (!user || !firestore) return null;
     return collection(firestore, "users", user.uid, "filaments");
   }, [user, firestore]);
-  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsQuery);
-  
+  const { data: filaments, isLoading: isLoadingFilaments } =
+    useCollection<Filament>(filamentsQuery);
+
   const accessoriesQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
     return collection(firestore, "users", user.uid, "accessories");
   }, [user, firestore]);
-  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
+  const { data: accessories, isLoading: isLoadingAccessories } =
+    useCollection<Accessory>(accessoriesQuery);
 
   const [isFilamentSheetOpen, setIsFilamentSheetOpen] = React.useState(false);
-  const [filamentFormData, setFilamentFormData] = React.useState<FilamentFormData>(defaultFilamentForm);
+  const [editingFilamentId, setEditingFilamentId] = React.useState<string | null>(null);
+  const [filamentFormData, setFilamentFormData] =
+    React.useState<FilamentFormData>(defaultFilamentForm);
 
   const [isAccessorySheetOpen, setIsAccessorySheetOpen] = React.useState(false);
-  const [accessoryFormData, setAccessoryFormData] = React.useState<AccessoryFormData>(defaultAccessoryForm);
+  const [editingAccessoryId, setEditingAccessoryId] = React.useState<string | null>(null);
+  const [accessoryFormData, setAccessoryFormData] =
+    React.useState<AccessoryFormData>(defaultAccessoryForm);
 
   const isLoading = isLoadingFilaments || isLoadingAccessories;
-  
-  const handleFilamentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const filamentToEdit = editingFilamentId ? filaments?.find(f => f.id === editingFilamentId) : null;
+  const accessoryToEdit = editingAccessoryId ? accessories?.find(a => a.id === editingAccessoryId) : null;
+
+  React.useEffect(() => {
+    if (filamentToEdit) {
+        setFilamentFormData({
+            name: filamentToEdit.name,
+            color: filamentToEdit.color,
+            stockLevel: filamentToEdit.stockLevel,
+            costPerKg: filamentToEdit.costPerKg,
+        });
+        setIsFilamentSheetOpen(true);
+    }
+  }, [filamentToEdit]);
+
+  React.useEffect(() => {
+    if (accessoryToEdit) {
+        setAccessoryFormData({
+            name: accessoryToEdit.name,
+            stockLevel: accessoryToEdit.stockLevel,
+            cost: accessoryToEdit.cost,
+        });
+        setIsAccessorySheetOpen(true);
+    }
+  }, [accessoryToEdit]);
+
+  const handleFilamentInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { name, value, type } = e.target;
     setFilamentFormData((prev) => ({
       ...prev,
@@ -90,7 +125,9 @@ export default function InventoryPage() {
     }));
   };
 
-  const handleAccessoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAccessoryInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { name, value, type } = e.target;
     setAccessoryFormData((prev) => ({
       ...prev,
@@ -99,13 +136,24 @@ export default function InventoryPage() {
   };
 
   const handleAddFilament = () => {
+    setEditingFilamentId(null);
     setFilamentFormData(defaultFilamentForm);
     setIsFilamentSheetOpen(true);
   };
+  
+  const handleEditFilament = (filamentId: string) => {
+    setEditingFilamentId(filamentId);
+  }
 
   const handleDeleteFilament = async (filamentId: string) => {
     if (!user) return;
-    const filamentDocRef = doc(firestore, "users", user.uid, "filaments", filamentId);
+    const filamentDocRef = doc(
+      firestore,
+      "users",
+      user.uid,
+      "filaments",
+      filamentId
+    );
     const filamentSnap = await getDoc(filamentDocRef);
     if (filamentSnap.exists()) {
       const filamentData = filamentSnap.data();
@@ -119,23 +167,41 @@ export default function InventoryPage() {
     }
   };
 
-  const handleFilamentFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFilamentFormSubmit = (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
-    const filamentsCollection = user ? collection(firestore, `users/${user.uid}/filaments`) : null;
-    if (!user || !filamentsCollection) return;
-
-    addDocumentNonBlocking(filamentsCollection, filamentFormData);
+    if (!user) return;
+    
+    if (editingFilamentId) {
+        const filamentDoc = doc(firestore, 'users', user.uid, 'filaments', editingFilamentId);
+        updateDocumentNonBlocking(filamentDoc, filamentFormData);
+    } else {
+        const filamentsCollection = collection(firestore, `users/${user.uid}/filaments`);
+        addDocumentNonBlocking(filamentsCollection, filamentFormData);
+    }
     setIsFilamentSheetOpen(false);
   };
 
   const handleAddAccessory = () => {
+    setEditingAccessoryId(null);
     setAccessoryFormData(defaultAccessoryForm);
     setIsAccessorySheetOpen(true);
   };
 
+  const handleEditAccessory = (accessoryId: string) => {
+    setEditingAccessoryId(accessoryId);
+  }
+
   const handleDeleteAccessory = async (accessoryId: string) => {
     if (!user) return;
-    const accessoryDocRef = doc(firestore, "users", user.uid, "accessories", accessoryId);
+    const accessoryDocRef = doc(
+      firestore,
+      "users",
+      user.uid,
+      "accessories",
+      accessoryId
+    );
     const accessorySnap = await getDoc(accessoryDocRef);
     if (accessorySnap.exists()) {
       const accessoryData = accessorySnap.data();
@@ -149,12 +215,19 @@ export default function InventoryPage() {
     }
   };
 
-  const handleAccessoryFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAccessoryFormSubmit = (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
-    const accessoriesCollection = user ? collection(firestore, `users/${user.uid}/accessories`) : null;
-    if (!user || !accessoriesCollection) return;
-
-    addDocumentNonBlocking(accessoriesCollection, accessoryFormData);
+    if (!user) return;
+    
+    if (editingAccessoryId) {
+        const accessoryDoc = doc(firestore, 'users', user.uid, 'accessories', editingAccessoryId);
+        updateDocumentNonBlocking(accessoryDoc, accessoryFormData);
+    } else {
+        const accessoriesCollection = collection(firestore, `users/${user.uid}/accessories`);
+        addDocumentNonBlocking(accessoriesCollection, accessoryFormData);
+    }
     setIsAccessorySheetOpen(false);
   };
 
@@ -228,6 +301,10 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditFilament(filament.id)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteFilament(filament.id)}
                               className="text-destructive"
@@ -302,6 +379,10 @@ export default function InventoryPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditAccessory(accessory.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
                               handleDeleteAccessory(accessory.id)
@@ -346,14 +427,17 @@ export default function InventoryPage() {
         open={isFilamentSheetOpen}
         onOpenChange={(isOpen) => {
           setIsFilamentSheetOpen(isOpen);
-          if (!isOpen) setFilamentFormData(defaultFilamentForm);
+          if (!isOpen) {
+            setEditingFilamentId(null);
+            setFilamentFormData(defaultFilamentForm);
+          };
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Añadir Nuevo Filamento</SheetTitle>
+            <SheetTitle>{editingFilamentId ? 'Editar Filamento' : 'Añadir Nuevo Filamento'}</SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo filamento.
+              {editingFilamentId ? 'Actualiza los detalles del filamento.' : 'Rellena los detalles para el nuevo filamento.'}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFilamentFormSubmit}>
@@ -416,7 +500,7 @@ export default function InventoryPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                Crear Filamento
+                {editingFilamentId ? 'Guardar Cambios' : 'Crear Filamento'}
               </Button>
             </SheetFooter>
           </form>
@@ -427,14 +511,17 @@ export default function InventoryPage() {
         open={isAccessorySheetOpen}
         onOpenChange={(isOpen) => {
           setIsAccessorySheetOpen(isOpen);
-          if (!isOpen) setAccessoryFormData(defaultAccessoryForm);
+          if (!isOpen) {
+            setEditingAccessoryId(null);
+            setAccessoryFormData(defaultAccessoryForm);
+          };
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Añadir Nuevo Accesorio</SheetTitle>
+            <SheetTitle>{editingAccessoryId ? 'Editar Accesorio' : 'Añadir Nuevo Accesorio'}</SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo accesorio.
+            {editingAccessoryId ? 'Actualiza los detalles del accesorio.' : 'Rellena los detalles para el nuevo accesorio.'}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleAccessoryFormSubmit}>
@@ -484,7 +571,7 @@ export default function InventoryPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                Crear Accesorio
+                {editingAccessoryId ? 'Guardar Cambios' : 'Crear Accesorio'}
               </Button>
             </SheetFooter>
           </form>

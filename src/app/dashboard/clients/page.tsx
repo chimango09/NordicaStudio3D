@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Edit } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -35,12 +35,20 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { collection, doc, getDoc, addDoc, deleteDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+} from "firebase/firestore";
 import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
   useUser,
+  updateDocumentNonBlocking,
 } from "@/firebase";
 import type { Client } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -66,7 +74,27 @@ export default function ClientsPage() {
   const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [formData, setFormData] = React.useState<ClientFormData>(defaultClientForm);
+  const [editingClientId, setEditingClientId] = React.useState<string | null>(
+    null
+  );
+  const [formData, setFormData] =
+    React.useState<ClientFormData>(defaultClientForm);
+
+  const clientToEdit = editingClientId
+    ? clients?.find((c) => c.id === editingClientId)
+    : null;
+
+  React.useEffect(() => {
+    if (clientToEdit) {
+      setFormData({
+        name: clientToEdit.name,
+        email: clientToEdit.email || "",
+        phone: clientToEdit.phone || "",
+        address: clientToEdit.address || "",
+      });
+      setIsSheetOpen(true);
+    }
+  }, [clientToEdit]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -74,8 +102,13 @@ export default function ClientsPage() {
   };
 
   const handleAddClient = () => {
+    setEditingClientId(null);
     setFormData(defaultClientForm);
     setIsSheetOpen(true);
+  };
+
+  const handleEditClient = (clientId: string) => {
+    setEditingClientId(clientId);
   };
 
   const handleDeleteClient = async (clientId: string) => {
@@ -96,13 +129,30 @@ export default function ClientsPage() {
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const clientsCollection = user
-      ? collection(firestore, `users/${user.uid}/clients`)
-      : null;
-    if (!user || !clientsCollection) return;
+    if (!user) return;
 
-    addDocumentNonBlocking(clientsCollection, formData);
+    if (editingClientId) {
+      const clientDoc = doc(
+        firestore,
+        "users",
+        user.uid,
+        "clients",
+        editingClientId
+      );
+      updateDocumentNonBlocking(clientDoc, formData);
+    } else {
+      const clientsCollection = collection(
+        firestore,
+        `users/${user.uid}/clients`
+      );
+      addDocumentNonBlocking(clientsCollection, formData);
+    }
+
     setIsSheetOpen(false);
+  };
+
+  const resetState = () => {
+    setEditingClientId(null);
     setFormData(defaultClientForm);
   };
 
@@ -156,6 +206,12 @@ export default function ClientsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => handleEditClient(client.id)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteClient(client.id)}
                           className="text-destructive"
@@ -248,6 +304,12 @@ export default function ClientsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem
+                              onClick={() => handleEditClient(client.id)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => handleDeleteClient(client.id)}
                               className="text-destructive"
                             >
@@ -275,15 +337,19 @@ export default function ClientsPage() {
         onOpenChange={(isOpen) => {
           setIsSheetOpen(isOpen);
           if (!isOpen) {
-            setFormData(defaultClientForm);
+            resetState();
           }
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Añadir Nuevo Cliente</SheetTitle>
+            <SheetTitle>
+              {editingClientId ? "Editar Cliente" : "Añadir Nuevo Cliente"}
+            </SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo cliente.
+              {editingClientId
+                ? "Actualiza los detalles del cliente."
+                : "Rellena los detalles para el nuevo cliente."}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
@@ -341,7 +407,7 @@ export default function ClientsPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                Crear Cliente
+                {editingClientId ? "Guardar Cambios" : "Crear Cliente"}
               </Button>
             </SheetFooter>
           </form>

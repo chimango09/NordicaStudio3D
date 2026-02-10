@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Edit } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -57,6 +57,7 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import type { Expense, Filament } from "@/lib/types";
@@ -102,22 +103,46 @@ export default function ExpensesPage() {
     if (!user || !firestore) return null;
     return collection(firestore, "users", user.uid, "expenses");
   }, [user, firestore]);
-  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
+  const { data: expenses, isLoading: isLoadingExpenses } =
+    useCollection<Expense>(expensesQuery);
 
   const filamentsQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
     return collection(firestore, "users", user.uid, "filaments");
   }, [user, firestore]);
-  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsQuery);
+  const { data: filaments, isLoading: isLoadingFilaments } =
+    useCollection<Filament>(filamentsQuery);
 
   const isLoading = isLoadingExpenses || isLoadingFilaments;
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [expenseType, setExpenseType] = React.useState<"general" | "filament">(
-    "general"
-  );
-  const [formData, setFormData] =
-    React.useState<ExpenseFormData>(defaultExpenseForm);
+  const [editingExpenseId, setEditingExpenseId] = React.useState<string | null>(null);
+  const [expenseType, setExpenseType] = React.useState<"general" | "filament">("general");
+  const [formData, setFormData] = React.useState<ExpenseFormData>(defaultExpenseForm);
+
+  const sortedExpenses = React.useMemo(() => {
+    return expenses
+      ? [...expenses].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+      : [];
+  }, [expenses]);
+  
+  const expenseToEdit = editingExpenseId ? sortedExpenses.find(e => e.id === editingExpenseId) : null;
+
+  React.useEffect(() => {
+    if (expenseToEdit) {
+        setFormData({
+            ...defaultExpenseForm,
+            description: expenseToEdit.description,
+            amount: expenseToEdit.amount,
+            date: new Date(expenseToEdit.date).toISOString().split('T')[0],
+        });
+        setExpenseType("general");
+        setIsSheetOpen(true);
+    }
+  }, [expenseToEdit]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -128,29 +153,30 @@ export default function ExpensesPage() {
   };
 
   const handleFilamentSelection = (filamentId: string) => {
-    const selectedFilament = filaments?.find(f => f.id === filamentId);
+    const selectedFilament = filaments?.find((f) => f.id === filamentId);
     if (selectedFilament) {
-        setFormData(prev => ({
-            ...prev,
-            filamentName: selectedFilament.name,
-            filamentColor: selectedFilament.color,
-        }));
+      setFormData((prev) => ({
+        ...prev,
+        filamentName: selectedFilament.name,
+        filamentColor: selectedFilament.color,
+      }));
     }
   };
 
   const resetForm = () => {
     setFormData(defaultExpenseForm);
     setExpenseType("general");
+    setEditingExpenseId(null);
   };
 
   const handleAddExpense = () => {
     resetForm();
-    setFormData({
-      ...defaultExpenseForm,
-      date: getTodayLocalYYYYMMDD(),
-    });
     setIsSheetOpen(true);
   };
+
+  const handleEditExpense = (expenseId: string) => {
+    setEditingExpenseId(expenseId);
+  }
 
   const handleDeleteExpense = async (expenseId: string) => {
     if (!user) return;
@@ -178,56 +204,83 @@ export default function ExpensesPage() {
     event.preventDefault();
     if (!user) return;
 
-    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
+    if (editingExpenseId) {
+        if (!formData.description || formData.amount <= 0) {
+            toast({ variant: "destructive", title: "Error", description: "La descripción y una cantidad válida son obligatorias." });
+            return;
+        }
+        const expenseDoc = doc(firestore, 'users', user.uid, 'expenses', editingExpenseId);
+        updateDocumentNonBlocking(expenseDoc, {
+            description: formData.description,
+            amount: formData.amount,
+            date: new Date(formData.date).toISOString(),
+        });
+        toast({ title: "Gasto Actualizado" });
+        setIsSheetOpen(false);
+        return;
+    }
 
-    if (expenseType === 'filament') {
-      if (!formData.filamentName || !formData.filamentColor || !formData.grams || !formData.amount) {
-        toast({ variant: "destructive", title: "Error", description: "Todos los campos de filamento son obligatorios." });
+    const expensesCollection = collection(
+      firestore,
+      `users/${user.uid}/expenses`
+    );
+
+    if (expenseType === "filament") {
+      if (
+        !formData.filamentName ||
+        !formData.filamentColor ||
+        !formData.grams ||
+        !formData.amount
+      ) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Todos los campos de filamento son obligatorios.",
+        });
         return;
       }
-      
-      const filamentsCollection = collection(firestore, `users/${user.uid}/filaments`);
-      const q = query(filamentsCollection, where("name", "==", formData.filamentName), where("color", "==", formData.filamentColor));
+
+      const filamentsCollection = collection(
+        firestore,
+        `users/${user.uid}/filaments`
+      );
+      const q = query(
+        filamentsCollection,
+        where("name", "==", formData.filamentName),
+        where("color", "==", formData.filamentColor)
+      );
 
       try {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          // Filament exists, update it with weighted average cost
           const filamentDoc = querySnapshot.docs[0];
           const existingFilament = filamentDoc.data() as Filament;
-          
+
           const existingStockInG = existingFilament.stockLevel;
           const existingCostPerKg = existingFilament.costPerKg;
-
-          // Calculate total value of existing stock
           const existingTotalValue = (existingCostPerKg / 1000) * existingStockInG;
           
-          // New stock values
           const newStockInG = formData.grams;
           const newStockValue = formData.amount;
-
-          // Calculate new totals
+          
           const newTotalStockInG = existingStockInG + newStockInG;
           const newTotalValue = existingTotalValue + newStockValue;
-
-          // Calculate new weighted average cost per kg, avoiding division by zero.
           const newAverageCostPerKg = newTotalStockInG > 0 ? (newTotalValue / newTotalStockInG) * 1000 : 0;
           
-          const filamentRef = doc(firestore, `users/${user.uid}/filaments`, filamentDoc.id);
+          const filamentRef = doc(firestore,`users/${user.uid}/filaments`,filamentDoc.id);
           await updateDoc(filamentRef, {
             stockLevel: newTotalStockInG,
-            costPerKg: newAverageCostPerKg 
+            costPerKg: newAverageCostPerKg
           });
 
         } else {
-          // New filament, calculate costPerKg directly
           const newCostPerKg = formData.grams > 0 ? (formData.amount / formData.grams) * 1000 : 0;
           await addDoc(filamentsCollection, {
             name: formData.filamentName,
             color: formData.filamentColor,
             stockLevel: formData.grams,
-            costPerKg: newCostPerKg
+            costPerKg: newCostPerKg,
           });
         }
 
@@ -242,12 +295,20 @@ export default function ExpensesPage() {
 
       } catch (error: any) {
         console.error("Error processing filament purchase:", error);
-        toast({ variant: "destructive", title: "Error", description: error.message || "No se pudo registrar la compra del filamento." });
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description:
+            error.message || "No se pudo registrar la compra del filamento.",
+        });
       }
-
     } else {
       if (!formData.description || formData.amount <= 0) {
-        toast({ variant: "destructive", title: "Error", description: "La descripción y una cantidad válida son obligatorias." });
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La descripción y una cantidad válida son obligatorias.",
+        });
         return;
       }
       const newExpenseData = {
@@ -259,16 +320,7 @@ export default function ExpensesPage() {
     }
 
     setIsSheetOpen(false);
-    resetForm();
   };
-
-  const sortedExpenses = React.useMemo(() => {
-    return expenses
-      ? [...expenses].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )
-      : [];
-  }, [expenses]);
 
   const formatDateForDisplay = (isoString: string) => {
     if (!isoString) return "";
@@ -332,6 +384,10 @@ export default function ExpensesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEditExpense(expense.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteExpense(expense.id)}
                           className="text-destructive"
@@ -412,6 +468,10 @@ export default function ExpensesPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditExpense(expense.id)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteExpense(expense.id)}
                               className="text-destructive"
@@ -444,32 +504,36 @@ export default function ExpensesPage() {
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Añadir Nuevo Gasto</SheetTitle>
+            <SheetTitle>{editingExpenseId ? 'Editar Gasto' : 'Añadir Nuevo Gasto'}</SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo gasto.
+              {editingExpenseId ? 'Actualiza los detalles del gasto.' : 'Rellena los detalles para el nuevo gasto.'}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="expenseType" className="text-right">
-                  Tipo
-                </Label>
-                <Select
-                  value={expenseType}
-                  onValueChange={(v: "general" | "filament") =>
-                    setExpenseType(v)
-                  }
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">Gasto General</SelectItem>
-                    <SelectItem value="filament">Compra de Filamento</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!editingExpenseId && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="expenseType" className="text-right">
+                    Tipo
+                  </Label>
+                  <Select
+                    value={expenseType}
+                    onValueChange={(v: "general" | "filament") =>
+                      setExpenseType(v)
+                    }
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">Gasto General</SelectItem>
+                      <SelectItem value="filament">
+                        Compra de Filamento
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {expenseType === "general" && (
                 <>
@@ -508,19 +572,19 @@ export default function ExpensesPage() {
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="existingFilament" className="text-right">
-                        Pre-rellenar
+                      Pre-rellenar
                     </Label>
                     <Select onValueChange={handleFilamentSelection}>
-                        <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Seleccionar filamento existente..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {filaments?.map((filament) => (
-                                <SelectItem key={filament.id} value={filament.id}>
-                                    {filament.name} - {filament.color}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Seleccionar filamento existente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filaments?.map((filament) => (
+                          <SelectItem key={filament.id} value={filament.id}>
+                            {filament.name} - {filament.color}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -599,7 +663,7 @@ export default function ExpensesPage() {
               </div>
             </div>
             <SheetFooter>
-              <Button type="submit">Crear Gasto</Button>
+              <Button type="submit">{editingExpenseId ? 'Guardar Cambios' : 'Crear Gasto'}</Button>
             </SheetFooter>
           </form>
         </SheetContent>
