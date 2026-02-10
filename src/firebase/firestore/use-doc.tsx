@@ -53,7 +53,7 @@ export function useDoc<T = any>(
     }
 
     // If the docRef is the same as before, no need to re-subscribe
-    if (prevDocRef && prevDocRef.isEqual(docRef)) {
+    if (prevDocRef && docRef && prevDocRef.isEqual(docRef)) {
       return;
     }
 
@@ -88,7 +88,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [docRef, prevDocRef]);
+  }, [docRef]);
 
   return { data, isLoading, error };
 }

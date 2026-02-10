@@ -67,7 +67,7 @@ export function useCollection<T = any>(
     }
     
     // If the query is the same as before, no need to re-subscribe
-    if (prevQuery && prevQuery.isEqual(targetRefOrQuery)) {
+    if (prevQuery && targetRefOrQuery && prevQuery.isEqual(targetRefOrQuery)) {
       return;
     }
 
@@ -106,7 +106,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [targetRefOrQuery, prevQuery]);
+  }, [targetRefOrQuery]);
 
   return { data, isLoading, error };
 }
