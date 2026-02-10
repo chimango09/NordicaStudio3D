@@ -49,10 +49,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type ExpenseFormData = Omit<Expense, "id">;
 
+const getTodayLocalYYYYMMDD = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const defaultExpenseForm: ExpenseFormData = {
   description: "",
   amount: 0,
-  date: new Date().toISOString().split("T")[0],
+  date: getTodayLocalYYYYMMDD(),
 };
 
 export default function ExpensesPage() {
@@ -81,7 +89,7 @@ export default function ExpensesPage() {
   const handleAddExpense = () => {
     setFormData({
       ...defaultExpenseForm,
-      date: new Date().toISOString().split("T")[0],
+      date: getTodayLocalYYYYMMDD(),
     });
     setIsSheetOpen(true);
   };
@@ -132,6 +140,20 @@ export default function ExpensesPage() {
         )
       : [];
   }, [expenses]);
+  
+  const formatDateForDisplay = (isoString: string) => {
+    if (!isoString) return '';
+    // The date from Firestore is a string that gets parsed as UTC.
+    // To display it correctly in the user's timezone without it shifting
+    // to the previous day, we need to create a new Date from its UTC parts.
+    const date = new Date(isoString);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    const day = date.getUTCDate();
+    const correctedDate = new Date(year, month, day);
+    return correctedDate.toLocaleDateString();
+  };
+
 
   return (
     <>
@@ -196,7 +218,7 @@ export default function ExpensesPage() {
                   </CardHeader>
                   <CardContent className="flex items-end justify-between">
                     <div className="text-sm text-muted-foreground">
-                      {new Date(expense.date).toLocaleDateString()}
+                      {formatDateForDisplay(expense.date)}
                     </div>
                     <div className="text-lg font-bold">
                       {settings.currency}
@@ -245,7 +267,7 @@ export default function ExpensesPage() {
                         {expense.description}
                       </TableCell>
                       <TableCell>
-                        {new Date(expense.date).toLocaleDateString()}
+                        {formatDateForDisplay(expense.date)}
                       </TableCell>
                       <TableCell className="text-right">
                         {settings.currency}
