@@ -86,33 +86,35 @@ export default function TrashPage() {
     const trashDocRef = doc(firestore, "users", user.uid, "trash", item.id);
     deleteDocumentNonBlocking(trashDocRef);
 
-    // If deleting a quote, return stock
+    // If deleting a quote, return stock only if the quote was pending
     if (item.originalCollection === "quotes") {
       const quoteData = item.data as Quote;
-      (quoteData.materials || []).forEach((mat) => {
-        const filamentDoc = doc(
-          firestore,
-          "users",
-          user.uid,
-          "filaments",
-          mat.filamentId
-        );
-        updateDocumentNonBlocking(filamentDoc, {
-          stockLevel: increment(mat.grams),
+      if (quoteData.status === "Pendiente") {
+        (quoteData.materials || []).forEach((mat) => {
+          const filamentDoc = doc(
+            firestore,
+            "users",
+            user.uid,
+            "filaments",
+            mat.filamentId
+          );
+          updateDocumentNonBlocking(filamentDoc, {
+            stockLevel: increment(mat.grams),
+          });
         });
-      });
-      (quoteData.accessories || []).forEach((acc) => {
-        const accessoryDoc = doc(
-          firestore,
-          "users",
-          user.uid,
-          "accessories",
-          acc.accessoryId
-        );
-        updateDocumentNonBlocking(accessoryDoc, {
-          stockLevel: increment(acc.quantity),
+        (quoteData.accessories || []).forEach((acc) => {
+          const accessoryDoc = doc(
+            firestore,
+            "users",
+            user.uid,
+            "accessories",
+            acc.accessoryId
+          );
+          updateDocumentNonBlocking(accessoryDoc, {
+            stockLevel: increment(acc.quantity),
+          });
         });
-      });
+      }
     }
   };
 
