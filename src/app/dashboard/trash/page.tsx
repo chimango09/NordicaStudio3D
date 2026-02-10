@@ -58,7 +58,7 @@ export default function TrashPage() {
   const { user } = useUser();
   const trashCollection = useMemoFirebase(
     () => (user ? collection(firestore, "users", user.uid, "trash") : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: trashItems, isLoading } = useCollection<TrashItem>(
     trashCollection

@@ -56,7 +56,7 @@ export default function ExpensesPage() {
 
   const expensesCollection = useMemoFirebase(
     () => (user ? collection(firestore, "users", user.uid, "expenses") : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: expenses, isLoading } = useCollection<Expense>(
     expensesCollection

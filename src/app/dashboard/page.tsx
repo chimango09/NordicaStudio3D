@@ -47,10 +47,10 @@ export default function DashboardPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user]);
+  const quotesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user?.uid]);
   const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
 
-  const expensesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "expenses") : null), [firestore, user]);
+  const expensesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "expenses") : null), [firestore, user?.uid]);
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesCollection);
   
   const isLoading = isLoadingQuotes || isLoadingExpenses;

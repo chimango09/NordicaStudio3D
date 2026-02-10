@@ -54,7 +54,7 @@ export default function ClientsPage() {
 
   const clientsCollection = useMemoFirebase(
     () => (user ? collection(firestore, "users", user.uid, "clients") : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: clients, isLoading } = useCollection<Client>(clientsCollection);
 

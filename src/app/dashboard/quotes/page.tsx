@@ -91,16 +91,16 @@ export default function QuotesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user]);
+  const quotesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "quotes") : null), [firestore, user?.uid]);
   const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
 
-  const clientsCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "clients") : null), [firestore, user]);
+  const clientsCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "clients") : null), [firestore, user?.uid]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
 
-  const filamentsCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "filaments") : null), [firestore, user]);
+  const filamentsCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "filaments") : null), [firestore, user?.uid]);
   const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
   
-  const accessoriesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "accessories") : null), [firestore, user]);
+  const accessoriesCollection = useMemoFirebase(() => (user ? collection(firestore, 'users', user.uid, "accessories") : null), [firestore, user?.uid]);
   const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesCollection);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);

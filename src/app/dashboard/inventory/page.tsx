@@ -50,7 +50,7 @@ export default function InventoryPage() {
 
   const filamentsCollection = useMemoFirebase(
     () => (user ? collection(firestore, "users", user.uid, "filaments") : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: filaments, isLoading: isLoadingFilaments } =
     useCollection<Filament>(filamentsCollection);
@@ -58,7 +58,7 @@ export default function InventoryPage() {
   const accessoriesCollection = useMemoFirebase(
     () =>
       user ? collection(firestore, "users", user.uid, "accessories") : null,
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: accessories, isLoading: isLoadingAccessories } =
     useCollection<Accessory>(accessoriesCollection);
