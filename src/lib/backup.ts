@@ -1,6 +1,6 @@
 'use client';
 
-import { Firestore, collection, getDocs } from 'firebase/firestore';
+import { Firestore, collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
 const COLLECTIONS_TO_BACKUP = ['clients', 'filaments', 'accessories', 'quotes', 'expenses', 'settings'];
@@ -77,4 +77,75 @@ export async function generateExcelBackup(firestore: Firestore, userId: string):
 
   const date = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `backup-nordica-studio-3d-${date}.xlsx`);
+}
+
+
+/**
+ * Generates a JSON backup of all user data.
+ * @param firestore The Firestore instance.
+ * @param userId The ID of the user whose data to back up.
+ */
+export async function generateJsonBackup(firestore: Firestore, userId: string): Promise<void> {
+  const backupData: { [key: string]: any[] } = {};
+
+  const backupPromises = COLLECTIONS_TO_BACKUP.map(async (collectionName) => {
+    try {
+      const colRef = collection(firestore, 'users', userId, collectionName);
+      const snapshot = await getDocs(colRef);
+      const docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (docsData.length > 0) {
+        backupData[collectionName] = docsData;
+      }
+    } catch (error) {
+      console.error(`Error backing up collection ${collectionName} for JSON:`, error);
+    }
+  });
+
+  await Promise.all(backupPromises);
+
+  if (Object.keys(backupData).length === 0) {
+    throw new Error('No hay datos para exportar.');
+  }
+
+  const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+    JSON.stringify(backupData, null, 2)
+  )}`;
+  const link = document.createElement("a");
+  link.href = jsonString;
+  const date = new Date().toISOString().split('T')[0];
+  link.download = `backup-json-nordica-studio-3d-${date}.json`;
+
+  link.click();
+}
+
+/**
+ * Imports data from a JSON backup file, overwriting existing data.
+ * @param firestore The Firestore instance.
+ * @param userId The ID of the user to restore data for.
+ * @param data The parsed JSON data from the backup file.
+ */
+export async function importJsonBackup(firestore: Firestore, userId: string, data: { [key: string]: any[] }): Promise<void> {
+  const collectionsInData = Object.keys(data);
+  const isValid = collectionsInData.length > 0 && collectionsInData.every(c => COLLECTIONS_TO_BACKUP.includes(c));
+  
+  if (!isValid) {
+    throw new Error("El archivo JSON no es un backup válido o está dañado.");
+  }
+
+  const batch = writeBatch(firestore);
+
+  for (const collectionName of collectionsInData) {
+    const collectionData = data[collectionName];
+    if (Array.isArray(collectionData)) {
+      for (const docData of collectionData) {
+        if (docData.id) {
+          const { id, ...rest } = docData;
+          const docRef = doc(firestore, 'users', userId, collectionName, id);
+          batch.set(docRef, rest);
+        }
+      }
+    }
+  }
+
+  await batch.commit();
 }

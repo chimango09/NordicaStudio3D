@@ -20,8 +20,20 @@ import { PageHeader } from "@/components/shared/page-header";
 import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useUser } from "@/firebase";
-import { generateExcelBackup } from "@/lib/backup";
+import { generateExcelBackup, generateJsonBackup, importJsonBackup } from "@/lib/backup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 
 
 const settingsSchema = z.object({
@@ -47,6 +59,9 @@ export default function SettingsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [isBackingUp, setIsBackingUp] = React.useState(false);
+  const [isJsonExporting, setIsJsonExporting] = React.useState(false);
+  const [isJsonImporting, setIsJsonImporting] = React.useState(false);
+  const [jsonFile, setJsonFile] = React.useState<File | null>(null);
 
   const {
     register,
@@ -111,6 +126,84 @@ export default function SettingsPage() {
     } finally {
       setIsBackingUp(false);
     }
+  };
+  
+  const handleJsonBackup = async () => {
+    if (!user || !firestore) return;
+    setIsJsonExporting(true);
+    try {
+      await generateJsonBackup(firestore, user.uid);
+      toast({
+        title: "Copia de Seguridad JSON Generada",
+        description: "La descarga de tu archivo JSON ha comenzado.",
+      });
+      localStorage.setItem('lastBackupDate', new Date().toISOString());
+    } catch (e: any) {
+      console.error("Failed to generate JSON backup:", e);
+      toast({
+        variant: "destructive",
+        title: "Error al generar la copia",
+        description: e.message || "No se pudo completar la generación del backup.",
+      });
+    } finally {
+      setIsJsonExporting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setJsonFile(e.target.files[0]);
+    } else {
+      setJsonFile(null);
+    }
+  };
+
+  const handleJsonImport = async () => {
+    if (!user || !firestore || !jsonFile) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor, selecciona un archivo de backup.",
+      });
+      return;
+    }
+    setIsJsonImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content !== 'string') {
+          throw new Error("No se pudo leer el archivo.");
+        }
+        const data = JSON.parse(content);
+
+        await importJsonBackup(firestore, user.uid, data);
+        
+        toast({
+          title: "Importación Completada",
+          description: "Tus datos han sido restaurados. La página se recargará.",
+        });
+
+        // Reload the page to reflect all changes
+        setTimeout(() => window.location.reload(), 2000);
+
+      } catch (e: any) {
+        console.error("Failed to import JSON backup:", e);
+        toast({
+          variant: "destructive",
+          title: "Error al importar",
+          description: e.message || "No se pudo completar la importación. Verifica que el archivo sea válido.",
+        });
+      } finally {
+        setIsJsonImporting(false);
+        setJsonFile(null);
+        // Reset the file input visually
+        const fileInput = document.getElementById('json-import-input') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      }
+    };
+    reader.readAsText(jsonFile);
   };
 
 
@@ -351,6 +444,56 @@ export default function SettingsPage() {
           <Button onClick={handleExcelBackup} disabled={isBackingUp} type="button">
             {isBackingUp ? "Generando..." : "Generar Backup en Excel"}
           </Button>
+        </CardContent>
+      </Card>
+      
+      <Card className="mt-6">
+        <CardHeader>
+            <CardTitle>Copia de Seguridad (JSON)</CardTitle>
+            <CardDescription>
+            Exporta todos tus datos a un archivo JSON o importa un backup para restaurar tu información.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div>
+                <h3 className="font-medium">Exportar</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                    Guarda un archivo JSON con todos tus datos. Ideal para restauraciones completas.
+                </p>
+                <Button onClick={handleJsonBackup} disabled={isJsonExporting} type="button">
+                    {isJsonExporting ? "Generando..." : "Exportar a JSON"}
+                </Button>
+            </div>
+            <Separator />
+            <div>
+                <h3 className="font-medium">Importar</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                    Selecciona un archivo de backup JSON para restaurar tus datos. <strong>Advertencia:</strong> Esta acción sobrescribirá todos los datos existentes en la aplicación.
+                </p>
+                <div className="flex items-center gap-4">
+                    <Input id="json-import-input" type="file" accept=".json" onChange={handleFileChange} className="max-w-xs" />
+
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={!jsonFile || isJsonImporting}>
+                                {isJsonImporting ? "Importando..." : "Importar Backup"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción es irreversible y sobrescribirá permanentemente todos tus datos actuales con el contenido del archivo de backup. No podrás deshacer esta acción.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleJsonImport}>Sí, importar y sobrescribir todo</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </div>
         </CardContent>
       </Card>
     </>
