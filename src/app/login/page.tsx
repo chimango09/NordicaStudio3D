@@ -127,10 +127,22 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/dashboard');
     } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
+      let description = 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';
+      if (error.code === 'auth/popup-closed-by-user') {
+        description = 'La ventana de inicio de sesión fue cerrada antes de completarse.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        description = 'Se canceló la solicitud para evitar abrir múltiples ventanas.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        description = 'El inicio de sesión con Google no está habilitado. Por favor, actívalo en la consola de Firebase.';
+      } else if (error.code === 'auth/internal-error') {
+          description = 'Ocurrió un error interno del servidor de autenticación. Verifica la configuración de Firebase.'
+      }
+
       toast({
         variant: 'destructive',
         title: 'Error con Google',
-        description: 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.',
+        description: description,
       });
     }
   };
