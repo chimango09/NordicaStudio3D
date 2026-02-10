@@ -90,21 +90,17 @@ export default function QuotesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesQueryKey = user ? `users/${user.uid}/quotes` : null;
-  const quotesCollection = React.useMemo(() => (quotesQueryKey ? collection(firestore, quotesQueryKey) : null), [firestore, quotesQueryKey]);
-  const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
+  const quotesPath = user ? `users/${user.uid}/quotes` : null;
+  const { data: quotesData, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesPath);
 
-  const clientsQueryKey = user ? `users/${user.uid}/clients` : null;
-  const clientsCollection = React.useMemo(() => (clientsQueryKey ? collection(firestore, clientsQueryKey) : null), [firestore, clientsQueryKey]);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
+  const clientsPath = user ? `users/${user.uid}/clients` : null;
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsPath);
 
-  const filamentsQueryKey = user ? `users/${user.uid}/filaments` : null;
-  const filamentsCollection = React.useMemo(() => (filamentsQueryKey ? collection(firestore, filamentsQueryKey) : null), [firestore, filamentsQueryKey]);
-  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsCollection);
+  const filamentsPath = user ? `users/${user.uid}/filaments` : null;
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsPath);
   
-  const accessoriesQueryKey = user ? `users/${user.uid}/accessories` : null;
-  const accessoriesCollection = React.useMemo(() => (accessoriesQueryKey ? collection(firestore, accessoriesQueryKey) : null), [firestore, accessoriesQueryKey]);
-  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesCollection);
+  const accessoriesPath = user ? `users/${user.uid}/accessories` : null;
+  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesPath);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
@@ -183,6 +179,7 @@ export default function QuotesPage() {
   }, [formValues, filaments, accessories, settings]);
 
   const handleCreateQuote = () => {
+    const quotesCollection = user ? collection(firestore, `users/${user.uid}/quotes`) : null;
     if (!canCreateQuote || !user || !quotesCollection) return;
 
     const finalMaterials = formValues.materials

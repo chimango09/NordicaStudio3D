@@ -1,13 +1,14 @@
 'use client';
     
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  DocumentReference,
   onSnapshot,
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
+  doc,
 } from 'firebase/firestore';
+import { useFirestore } from '@/firebase'; // Using the barrel file
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -26,21 +27,32 @@ export interface UseDocResult<T> {
 
 /**
  * React hook to subscribe to a single Firestore document in real-time.
- * Handles nullable references.
+ * It memoizes the document reference to prevent re-subscribing on every render.
  *
  * @template T Optional type for document data. Defaults to any.
- * @param {DocumentReference<DocumentData> | null | undefined} docRef -
- * The Firestore DocumentReference. It is crucial that this object is memoized to avoid re-subscribing on every render.
+ * @param {string | null | undefined} path - The string path to the Firestore document.
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
-  docRef: DocumentReference<DocumentData> | null | undefined,
+  path: string | null | undefined,
 ): UseDocResult<T> {
+  const firestore = useFirestore();
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+
+  // Memoize the document reference. This is the key to preventing infinite loops.
+  const docRef = useMemo(() => {
+    if (!path || !firestore) return null;
+     try {
+        return doc(firestore, path);
+    } catch (e) {
+        console.error("Error creating document reference:", e);
+        return null;
+    }
+  }, [path, firestore]);
 
   useEffect(() => {
     if (!docRef) {
@@ -59,23 +71,21 @@ export function useDoc<T = any>(
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          // Document does not exist
           setData(null);
         }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+        setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (snapshotError: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: docRef.path,
         })
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
 
-        // trigger global error propagation
         errorEmitter.emit('permission-error', contextualError);
       }
     );

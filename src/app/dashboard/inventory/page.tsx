@@ -47,21 +47,11 @@ export default function InventoryPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const filamentsQueryKey = user ? `users/${user.uid}/filaments` : null;
-  const filamentsCollection = React.useMemo(
-    () => (filamentsQueryKey ? collection(firestore, filamentsQueryKey) : null),
-    [firestore, filamentsQueryKey]
-  );
-  const { data: filaments, isLoading: isLoadingFilaments } =
-    useCollection<Filament>(filamentsCollection);
+  const filamentsPath = user ? `users/${user.uid}/filaments` : null;
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsPath);
   
-  const accessoriesQueryKey = user ? `users/${user.uid}/accessories` : null;
-  const accessoriesCollection = React.useMemo(
-    () => (accessoriesQueryKey ? collection(firestore, accessoriesQueryKey) : null),
-    [firestore, accessoriesQueryKey]
-  );
-  const { data: accessories, isLoading: isLoadingAccessories } =
-    useCollection<Accessory>(accessoriesCollection);
+  const accessoriesPath = user ? `users/${user.uid}/accessories` : null;
+  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesPath);
 
   const [isFilamentSheetOpen, setIsFilamentSheetOpen] = React.useState(false);
   const [editingFilament, setEditingFilament] =
@@ -105,6 +95,7 @@ export default function InventoryPage() {
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
+    const filamentsCollection = user ? collection(firestore, `users/${user.uid}/filaments`) : null;
     if (!user || !filamentsCollection) return;
 
     const formData = new FormData(event.currentTarget);
@@ -161,6 +152,7 @@ export default function InventoryPage() {
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
+    const accessoriesCollection = user ? collection(firestore, `users/${user.uid}/accessories`) : null;
     if (!user || !accessoriesCollection) return;
 
     const formData = new FormData(event.currentTarget);

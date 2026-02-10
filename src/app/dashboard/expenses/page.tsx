@@ -53,14 +53,8 @@ export default function ExpensesPage() {
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const expensesQueryKey = user ? `users/${user.uid}/expenses` : null;
-  const expensesCollection = React.useMemo(
-    () => (expensesQueryKey ? collection(firestore, expensesQueryKey) : null),
-    [firestore, expensesQueryKey]
-  );
-  const { data: expenses, isLoading } = useCollection<Expense>(
-    expensesCollection
-  );
+  const expensesPath = user ? `users/${user.uid}/expenses` : null;
+  const { data: expenses, isLoading } = useCollection<Expense>(expensesPath);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(
@@ -101,6 +95,7 @@ export default function ExpensesPage() {
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const expensesCollection = user ? collection(firestore, `users/${user.uid}/expenses`) : null;
     if (!user || !expensesCollection) return;
 
     const formData = new FormData(event.currentTarget);

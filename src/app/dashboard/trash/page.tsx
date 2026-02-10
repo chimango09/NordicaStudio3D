@@ -56,14 +56,8 @@ export default function TrashPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const trashQueryKey = user ? `users/${user.uid}/trash` : null;
-  const trashCollection = React.useMemo(
-    () => (trashQueryKey ? collection(firestore, trashQueryKey) : null),
-    [firestore, trashQueryKey]
-  );
-  const { data: trashItems, isLoading } = useCollection<TrashItem>(
-    trashCollection
-  );
+  const trashPath = user ? `users/${user.uid}/trash` : null;
+  const { data: trashItems, isLoading } = useCollection<TrashItem>(trashPath);
 
   const getDisplayName = (item: TrashItem) => {
     return item.data.name || item.data.description || item.originalId;

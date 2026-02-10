@@ -51,12 +51,8 @@ export default function ClientsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const clientsQueryKey = user ? `users/${user.uid}/clients` : null;
-  const clientsCollection = React.useMemo(
-    () => (clientsQueryKey ? collection(firestore, clientsQueryKey) : null),
-    [firestore, clientsQueryKey]
-  );
-  const { data: clients, isLoading } = useCollection<Client>(clientsCollection);
+  const clientsPath = user ? `users/${user.uid}/clients` : null;
+  const { data: clients, isLoading } = useCollection<Client>(clientsPath);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingClient, setEditingClient] = React.useState<Client | null>(
@@ -91,6 +87,7 @@ export default function ClientsPage() {
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const clientsCollection = user ? collection(firestore, `users/${user.uid}/clients`) : null;
     if (!user || !clientsCollection) return;
 
     const formData = new FormData(event.currentTarget);

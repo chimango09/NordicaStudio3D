@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/card";
 import { DollarSign, Wallet, ReceiptText, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
-import { collection } from 'firebase/firestore';
-import { useFirestore, useCollection, useUser } from '@/firebase';
+import { useCollection, useUser } from '@/firebase';
 import { useSettings } from '@/hooks/use-settings';
 import type { Quote, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,17 +42,14 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function DashboardPage() {
-  const firestore = useFirestore();
   const { user } = useUser();
   const { settings } = useSettings();
 
-  const quotesQueryKey = user ? `users/${user.uid}/quotes` : null;
-  const quotesCollection = React.useMemo(() => (quotesQueryKey ? collection(firestore, quotesQueryKey) : null), [firestore, quotesQueryKey]);
-  const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesCollection);
+  const quotesPath = user ? `users/${user.uid}/quotes` : null;
+  const { data: quotes, isLoading: isLoadingQuotes } = useCollection<Quote>(quotesPath);
 
-  const expensesQueryKey = user ? `users/${user.uid}/expenses` : null;
-  const expensesCollection = React.useMemo(() => (expensesQueryKey ? collection(firestore, expensesQueryKey) : null), [firestore, expensesQueryKey]);
-  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesCollection);
+  const expensesPath = user ? `users/${user.uid}/expenses` : null;
+  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesPath);
   
   const isLoading = isLoadingQuotes || isLoadingExpenses;
 
