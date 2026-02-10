@@ -14,6 +14,7 @@ import {
   Settings,
   Trash2,
   Users,
+  Sparkles,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -48,6 +49,7 @@ import { useSettings } from '@/hooks/use-settings';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel' },
+  { href: '/dashboard/advisor', icon: Sparkles, label: 'Asesor IA' },
   { href: '/dashboard/quotes', icon: Calculator, label: 'Cotizaciones' },
   { href: '/dashboard/clients', icon: Users, label: 'Clientes' },
   { href: '/dashboard/inventory', icon: Boxes, label: 'Inventario' },
