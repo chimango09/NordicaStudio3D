@@ -60,7 +60,7 @@ import {
   addDocumentNonBlocking,
   useUser,
 } from "@/firebase";
-import type { Expense } from "@/lib/types";
+import type { Expense, Filament } from "@/lib/types";
 import { useSettings } from "@/hooks/use-settings";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -103,7 +103,15 @@ export default function ExpensesPage() {
     if (!user || !firestore) return null;
     return collection(firestore, "users", user.uid, "expenses");
   }, [user, firestore]);
-  const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
+  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
+
+  const filamentsQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, "users", user.uid, "filaments");
+  }, [user, firestore]);
+  const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsQuery);
+
+  const isLoading = isLoadingExpenses || isLoadingFilaments;
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [expenseType, setExpenseType] = React.useState<"general" | "filament">(
@@ -118,6 +126,17 @@ export default function ExpensesPage() {
       ...prev,
       [name]: type === "number" ? parseFloat(value) || 0 : value,
     }));
+  };
+
+  const handleFilamentSelection = (filamentId: string) => {
+    const selectedFilament = filaments?.find(f => f.id === filamentId);
+    if (selectedFilament) {
+        setFormData(prev => ({
+            ...prev,
+            filamentName: selectedFilament.name,
+            filamentColor: selectedFilament.color,
+        }));
+    }
   };
 
   const resetForm = () => {
@@ -466,6 +485,23 @@ export default function ExpensesPage() {
 
               {expenseType === "filament" && (
                 <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="existingFilament" className="text-right">
+                        Pre-rellenar
+                    </Label>
+                    <Select onValueChange={handleFilamentSelection}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Seleccionar filamento existente..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {filaments?.map((filament) => (
+                                <SelectItem key={filament.id} value={filament.id}>
+                                    {filament.name} - {filament.color}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="filamentName" className="text-right">
                       Nombre Filamento
