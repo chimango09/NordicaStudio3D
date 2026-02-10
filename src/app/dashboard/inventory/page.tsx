@@ -41,7 +41,7 @@ import type { Filament, Accessory } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type FilamentFormData = Omit<Filament, "id">;
+type FilamentFormData = Omit<Filament, "id" | "spoolWeight">;
 type AccessoryFormData = Omit<Accessory, "id">;
 
 const defaultFilamentForm: FilamentFormData = {
@@ -139,8 +139,13 @@ export default function InventoryPage() {
     event.preventDefault();
     if (!user) return;
 
+    const newFilamentData = {
+      ...filamentFormData,
+      spoolWeight: filamentFormData.stockLevel,
+    };
+
     const filamentsCollection = collection(firestore, `users/${user.uid}/filaments`);
-    addDocumentNonBlocking(filamentsCollection, filamentFormData);
+    addDocumentNonBlocking(filamentsCollection, newFilamentData);
     setIsFilamentSheetOpen(false);
   };
 
@@ -267,10 +272,10 @@ export default function InventoryPage() {
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Nivel de Stock</span>
-                        <span>{filament.stockLevel}g</span>
+                        <span>{filament.stockLevel}g / {filament.spoolWeight || 1000}g</span>
                       </div>
                       <Progress
-                        value={(filament.stockLevel / 1000) * 100}
+                        value={(filament.stockLevel / (filament.spoolWeight || 1000)) * 100}
                         className="mt-1 h-2"
                       />
                     </div>

@@ -19,6 +19,7 @@ export interface Filament {
   color: string;
   stockLevel: number; // in grams
   costPerKg: number;
+  spoolWeight?: number;
 }
 
 export interface Accessory {

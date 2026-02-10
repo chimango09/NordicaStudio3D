@@ -86,6 +86,10 @@
         "costPerKg": {
           "type": "number",
           "description": "Cost per kilogram of the filament."
+        },
+        "spoolWeight": {
+          "type": "number",
+          "description": "The standard weight of a new spool for this filament (e.g., 750g, 1000g)."
         }
       },
       "required": [

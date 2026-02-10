@@ -242,6 +242,7 @@ export default function ExpensesPage() {
             color: formData.filamentColor,
             stockLevel: formData.grams,
             costPerKg: newCostPerKg,
+            spoolWeight: formData.grams,
           });
         }
 
