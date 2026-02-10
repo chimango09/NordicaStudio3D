@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Edit } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -57,7 +57,6 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
-  updateDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import type { Expense, Filament } from "@/lib/types";
@@ -116,7 +115,6 @@ export default function ExpensesPage() {
   const isLoading = isLoadingExpenses || isLoadingFilaments;
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingExpenseId, setEditingExpenseId] = React.useState<string | null>(null);
   const [expenseType, setExpenseType] = React.useState<"general" | "filament">("general");
   const [formData, setFormData] = React.useState<ExpenseFormData>(defaultExpenseForm);
 
@@ -127,22 +125,6 @@ export default function ExpensesPage() {
         )
       : [];
   }, [expenses]);
-  
-  const expenseToEdit = editingExpenseId ? sortedExpenses.find(e => e.id === editingExpenseId) : null;
-
-  React.useEffect(() => {
-    if (expenseToEdit) {
-        setFormData({
-            ...defaultExpenseForm,
-            description: expenseToEdit.description,
-            amount: expenseToEdit.amount,
-            date: new Date(expenseToEdit.date).toISOString().split('T')[0],
-        });
-        setExpenseType("general");
-        setIsSheetOpen(true);
-    }
-  }, [expenseToEdit]);
-
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -166,17 +148,12 @@ export default function ExpensesPage() {
   const resetForm = () => {
     setFormData(defaultExpenseForm);
     setExpenseType("general");
-    setEditingExpenseId(null);
   };
 
   const handleAddExpense = () => {
     resetForm();
     setIsSheetOpen(true);
   };
-
-  const handleEditExpense = (expenseId: string) => {
-    setEditingExpenseId(expenseId);
-  }
 
   const handleDeleteExpense = async (expenseId: string) => {
     if (!user) return;
@@ -203,22 +180,6 @@ export default function ExpensesPage() {
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user) return;
-
-    if (editingExpenseId) {
-        if (!formData.description || formData.amount <= 0) {
-            toast({ variant: "destructive", title: "Error", description: "La descripción y una cantidad válida son obligatorias." });
-            return;
-        }
-        const expenseDoc = doc(firestore, 'users', user.uid, 'expenses', editingExpenseId);
-        updateDocumentNonBlocking(expenseDoc, {
-            description: formData.description,
-            amount: formData.amount,
-            date: new Date(formData.date).toISOString(),
-        });
-        toast({ title: "Gasto Actualizado" });
-        setIsSheetOpen(false);
-        return;
-    }
 
     const expensesCollection = collection(
       firestore,
@@ -384,10 +345,6 @@ export default function ExpensesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditExpense(expense.id)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteExpense(expense.id)}
                           className="text-destructive"
@@ -468,10 +425,6 @@ export default function ExpensesPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditExpense(expense.id)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteExpense(expense.id)}
                               className="text-destructive"
@@ -504,36 +457,34 @@ export default function ExpensesPage() {
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>{editingExpenseId ? 'Editar Gasto' : 'Añadir Nuevo Gasto'}</SheetTitle>
+            <SheetTitle>Añadir Nuevo Gasto</SheetTitle>
             <SheetDescription>
-              {editingExpenseId ? 'Actualiza los detalles del gasto.' : 'Rellena los detalles para el nuevo gasto.'}
+              Rellena los detalles para el nuevo gasto.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
-              {!editingExpenseId && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="expenseType" className="text-right">
-                    Tipo
-                  </Label>
-                  <Select
-                    value={expenseType}
-                    onValueChange={(v: "general" | "filament") =>
-                      setExpenseType(v)
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">Gasto General</SelectItem>
-                      <SelectItem value="filament">
-                        Compra de Filamento
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="expenseType" className="text-right">
+                  Tipo
+                </Label>
+                <Select
+                  value={expenseType}
+                  onValueChange={(v: "general" | "filament") =>
+                    setExpenseType(v)
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">Gasto General</SelectItem>
+                    <SelectItem value="filament">
+                      Compra de Filamento
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {expenseType === "general" && (
                 <>
@@ -663,7 +614,7 @@ export default function ExpensesPage() {
               </div>
             </div>
             <SheetFooter>
-              <Button type="submit">{editingExpenseId ? 'Guardar Cambios' : 'Crear Gasto'}</Button>
+              <Button type="submit">Crear Gasto</Button>
             </SheetFooter>
           </form>
         </SheetContent>
