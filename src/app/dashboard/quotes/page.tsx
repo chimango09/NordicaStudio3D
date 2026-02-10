@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Trash2, FileDown, Calendar as CalendarIcon } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, FileDown } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { format } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -72,9 +71,6 @@ import type { Quote, Client, Filament, Accessory, QuoteMaterial, QuoteAccessory 
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 
 type QuoteWithClientName = Quote & { clientName: string; id: string };
 
@@ -87,6 +83,14 @@ declare module 'jspdf' {
       autoTable: (options: any) => jsPDF;
     }
 }
+
+const getTodayLocalYYYYMMDD = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 
 export default function QuotesPage() {
@@ -141,7 +145,7 @@ export default function QuotesPage() {
     description: "",
     materials: [] as FormMaterial[],
     accessories: [] as FormAccessory[],
-    date: new Date(),
+    date: getTodayLocalYYYYMMDD(),
   });
   const [itemKey, setItemKey] = React.useState(0);
   const [calculatedPrice, setCalculatedPrice] = React.useState(0);
@@ -157,7 +161,7 @@ export default function QuotesPage() {
   }, [calculatedPrice, formValues]);
   
   const resetForm = () => {
-    setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [], date: new Date() });
+    setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [], date: getTodayLocalYYYYMMDD() });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
   };
@@ -228,7 +232,7 @@ export default function QuotesPage() {
       accessories: finalAccessories,
       price: calculatedPrice,
       status: 'Pendiente' as const,
-      date: formValues.date.toISOString(),
+      date: new Date(formValues.date + "T00:00:00").toISOString(),
       ...costs,
     };
     
@@ -590,28 +594,13 @@ export default function QuotesPage() {
             <div className="space-y-2"><Label htmlFor="client">Cliente</Label><Select required onValueChange={(val) => setFormValues(p => ({...p, clientId: val}))}><SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger><SelectContent>{clients?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2">
               <Label htmlFor="date">Fecha</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formValues.date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formValues.date ? format(formValues.date, "PPP") : <span>Elige una fecha</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formValues.date}
-                    onSelect={(date) => setFormValues(p => ({...p, date: date || new Date()}))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="date"
+                type="date"
+                value={formValues.date}
+                onChange={(e) => setFormValues(p => ({...p, date: e.target.value}))}
+                required
+              />
             </div>
             <div className="space-y-2"><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" placeholder="Descripción del trabajo..." onChange={(e) => setFormValues(p => ({...p, description: e.target.value}))} /></div>
 
