@@ -1,3 +1,4 @@
+
 export interface Client {
   id: string;
   name: string;
@@ -37,6 +38,20 @@ export interface QuoteMaterial {
 export interface QuoteAccessory {
   accessoryId: string;
   quantity: number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  materials: QuoteMaterial[];
+  accessories: QuoteAccessory[];
+  printingTimeHours: number;
+  price: number;
+  materialCost: number;
+  accessoryCost: number;
+  machineCost: number;
+  electricityCost: number;
 }
 
 export interface Quote {

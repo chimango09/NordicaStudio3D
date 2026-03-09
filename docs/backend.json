@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -121,6 +122,56 @@
         "stockLevel",
         "cost"
       ]
+    },
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a 3D printable piece/product with predefined costs and materials.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the piece."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the piece."
+        },
+        "printingTimeHours": {
+          "type": "number",
+          "description": "Standard printing time in hours."
+        },
+        "materials": {
+          "type": "array",
+          "description": "Predefined filaments used.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "filamentId": { "type": "string" },
+              "grams": { "type": "number" }
+            }
+          }
+        },
+        "accessories": {
+          "type": "array",
+          "description": "Predefined accessories used.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "accessoryId": { "type": "string" },
+              "quantity": { "type": "number" }
+            }
+          }
+        },
+        "price": {
+          "type": "number",
+          "description": "Standard price for the piece."
+        },
+        "materialCost": { "type": "number" },
+        "accessoryCost": { "type": "number" },
+        "machineCost": { "type": "number" },
+        "electricityCost": { "type": "number" }
+      },
+      "required": ["name", "price"]
     },
     "Quote": {
       "title": "Quote",
@@ -310,6 +361,12 @@
         "$ref": "#/entities/Accessory"
       },
       "description": "Stores accessory inventory information for a specific user."
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Stores catalog products (pieces) for a specific user."
     },
     "/users/{userId}/quotes/{quoteId}": {
       "schema": {

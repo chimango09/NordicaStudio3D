@@ -1,14 +1,16 @@
+
 'use client';
 
 import { Firestore, collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
-const COLLECTIONS_TO_BACKUP = ['clients', 'filaments', 'accessories', 'quotes', 'expenses', 'settings'];
+const COLLECTIONS_TO_BACKUP = ['clients', 'filaments', 'accessories', 'products', 'quotes', 'expenses', 'settings'];
 
 const collectionDisplayNames: { [key: string]: string } = {
   clients: "Clientes",
   filaments: "Filamentos",
   accessories: "Accesorios",
+  products: "Catálogo de Piezas",
   quotes: "Cotizaciones",
   expenses: "Gastos",
   settings: "Configuración",
@@ -29,8 +31,7 @@ export async function generateExcelBackup(firestore: Firestore, userId: string):
       const snapshot = await getDocs(colRef);
       let docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Flatten nested objects (like in quotes) for better readability in Excel
-      if (['quotes', 'trash'].includes(collectionName)) {
+      if (['quotes', 'trash', 'products'].includes(collectionName)) {
           docsData = docsData.map(doc => {
               const newDoc: {[key: string]: any} = {};
               for(const key in doc) {
@@ -47,7 +48,6 @@ export async function generateExcelBackup(firestore: Firestore, userId: string):
       if (docsData.length > 0) {
         const ws = XLSX.utils.json_to_sheet(docsData);
 
-        // Auto-fit columns for better readability
         const colWidths = Object.keys(docsData[0]).map(key => {
           let maxLength = key.length;
           docsData.forEach(row => {
@@ -56,7 +56,7 @@ export async function generateExcelBackup(firestore: Firestore, userId: string):
               maxLength = value.length;
             }
           });
-          return { wch: maxLength + 2 }; // +2 for a little padding
+          return { wch: maxLength + 2 }; 
         });
         ws['!cols'] = colWidths;
         
@@ -65,7 +65,6 @@ export async function generateExcelBackup(firestore: Firestore, userId: string):
       }
     } catch (error) {
       console.error(`Error backing up collection ${collectionName}:`, error);
-      // We can decide to either throw an error or just log it and continue
     }
   });
 

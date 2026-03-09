@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,6 +15,7 @@ import {
   Settings,
   Trash2,
   Users,
+  Package,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -49,6 +51,7 @@ import { useSettings } from '@/hooks/use-settings';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel' },
   { href: '/dashboard/quotes', icon: Calculator, label: 'Cotizaciones' },
+  { href: '/dashboard/catalog', icon: Package, label: 'Piezas' },
   { href: '/dashboard/clients', icon: Users, label: 'Clientes' },
   { href: '/dashboard/inventory', icon: Boxes, label: 'Inventario' },
   { href: '/dashboard/expenses', icon: ReceiptText, label: 'Gastos' },

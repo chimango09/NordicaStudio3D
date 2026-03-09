@@ -1,7 +1,8 @@
+
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Trash2, FileDown } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, FileDown, Package } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -67,7 +68,7 @@ import {
   useUser,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
-import type { Quote, Client, Filament, Accessory, QuoteMaterial, QuoteAccessory } from "@/lib/types";
+import type { Quote, Client, Filament, Accessory, QuoteMaterial, QuoteAccessory, Product } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -120,7 +121,13 @@ export default function QuotesPage() {
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'accessories');
   }, [user, firestore]);
-  const { data: accessories, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
+  const { data: accessoriesData, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
+
+  const productsQuery = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'products');
+  }, [user, firestore]);
+  const { data: products } = useCollection<Product>(productsQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
@@ -164,6 +171,24 @@ export default function QuotesPage() {
     setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [], date: getTodayLocalYYYYMMDD() });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
+  };
+
+  const handleLoadProduct = (productId: string) => {
+    const product = products?.find(p => p.id === productId);
+    if (!product) return;
+
+    let currentKey = itemKey;
+    const formMaterials = product.materials.map(m => ({ ...m, key: currentKey++ }));
+    const formAccessories = product.accessories.map(a => ({ ...a, key: currentKey++ }));
+    
+    setItemKey(currentKey);
+    setFormValues(prev => ({
+      ...prev,
+      description: product.description || product.name,
+      printingTimeHours: product.printingTimeHours,
+      materials: formMaterials,
+      accessories: formAccessories,
+    }));
   };
 
   const addMaterial = () => {
@@ -210,7 +235,7 @@ export default function QuotesPage() {
         setCalculatedPrice(0);
         setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
     }
-  }, [formValues, filaments, accessories, settings]);
+  }, [formValues, filaments, accessoriesData, settings]);
 
   const handleCreateQuote = () => {
     const quotesCollection = user ? collection(firestore, `users/${user.uid}/quotes`) : null;
@@ -278,8 +303,6 @@ export default function QuotesPage() {
     setIsDetailsOpen(true);
   };
   
-  const accessoriesData = accessories;
-  
   const calculateTotalCost = (quote: Quote) => (quote.materialCost || 0) + (quote.accessoryCost || 0) + (quote.machineCost || 0) + (quote.electricityCost || 0);
   const calculateProfit = (quote: Quote) => quote.price - calculateTotalCost(quote);
   
@@ -297,9 +320,6 @@ export default function QuotesPage() {
     const doc = new jsPDF();
     const client = clients?.find(c => c.id === quote.clientId);
 
-    // --------------------------------
-    // 📌 DATOS DEL EMISOR
-    // --------------------------------
     const emitterName = settings.companyName;
     const emitterResponsible = settings.companyResponsible;
     const emitterPhone = settings.companyPhone;
@@ -342,15 +362,12 @@ export default function QuotesPage() {
     doc.text(`Número: ${quote.id.substring(0, 8).toUpperCase()}`, 190, 27, { align: 'right' });
     doc.text(`Fecha: ${formatDateForDisplay(quote.date)}`, 190, 34, { align: 'right' });
 
-    const emitterBlockHeight = 30; // Approx height of the text block
+    const emitterBlockHeight = 30; 
     const lineY = startYPos + Math.max(logoHeight, emitterBlockHeight) + 7;
     doc.setLineWidth(0.5);
     doc.line(20, lineY, 190, lineY);
 
 
-    // --------------------------------
-    // 👤 DATOS DEL CLIENTE
-    // --------------------------------
     let clientY = lineY + 10;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
@@ -363,20 +380,10 @@ export default function QuotesPage() {
         doc.text(`Teléfono: ${client.phone}`, 20, clientY);
     }
 
-    // --------------------------------
-    // 🧾 DETALLE DE LA PIEZA / SERVICIO
-    // --------------------------------
     const tableBody = [];
-    
-    tableBody.push([
-        'Pieza / Descripción',
-        quote.description || 'Trabajo de impresión 3D'
-    ]);
+    tableBody.push(['Pieza / Descripción', quote.description || 'Trabajo de impresión 3D']);
     if (quote.printingTimeHours > 0) {
-      tableBody.push([
-          'Tiempo de Impresión Estimado',
-          `${quote.printingTimeHours} hs`
-      ]);
+      tableBody.push(['Tiempo de Impresión Estimado', `${quote.printingTimeHours} hs`]);
     }
 
     doc.autoTable({
@@ -392,8 +399,6 @@ export default function QuotesPage() {
         },
         didDrawPage: (data: any) => {
             let finalY = data.cursor.y;
-            
-            // --- Totals Section ---
             const totalsStartY = finalY + 10;
             const totalsHeight = 18;
             const totalsWidth = 85;
@@ -415,9 +420,6 @@ export default function QuotesPage() {
 
             finalY = totalsStartY + totalsHeight + 10;
 
-            // --------------------------------
-            // 💰 CONDICIONES DE PAGO
-            // --------------------------------
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.text('CONDICIONES DE PAGO:', 20, finalY);
@@ -427,9 +429,6 @@ export default function QuotesPage() {
             doc.text(splitPayment, 20, finalY + 7);
             finalY += splitPayment.length * 5 + 10;
             
-            // --------------------------------
-            // 📜 CONDICIONES GENERALES Y ACLARACIONES
-            // --------------------------------
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.text('CONDICIONES GENERALES Y ACLARACIONES:', 20, finalY);
@@ -446,9 +445,6 @@ export default function QuotesPage() {
             const splitConditions = doc.splitTextToSize(conditions.join("\n"), 170);
             doc.text(splitConditions, 20, finalY + 7);
 
-            // --------------------------------
-            // 📐 FOOTER
-            // --------------------------------
             const pageCount = doc.internal.getNumberOfPages();
             for(let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
@@ -466,8 +462,8 @@ export default function QuotesPage() {
   return (
     <>
       <PageHeader
-        title="Herramienta de Cotización"
-        description="Crea y gestiona cotizaciones para tus trabajos de impresión 3D."
+        title="Cotizaciones"
+        description="Gestiona las ventas y asignación de piezas a tus clientes."
       />
       <Card>
         <CardHeader>
@@ -535,7 +531,6 @@ export default function QuotesPage() {
             ))}
           </div>
 
-          {/* Desktop view */}
           <div className="hidden md:block">
             <Table>
                 <TableHeader>
@@ -589,9 +584,30 @@ export default function QuotesPage() {
 
       <Sheet open={isSheetOpen} onOpenChange={(isOpen) => { setIsSheetOpen(isOpen); if (!isOpen) resetForm(); }}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
-          <SheetHeader><SheetTitle>Crear Nueva Cotización</SheetTitle><SheetDescription>Calcula el precio para un nuevo trabajo de impresión 3D.</SheetDescription></SheetHeader>
+          <SheetHeader><SheetTitle>Crear Nueva Cotización</SheetTitle><SheetDescription>Calcula el precio para un nuevo trabajo o asigna una pieza de tu catálogo.</SheetDescription></SheetHeader>
           <div className="grid gap-6 py-4">
-            <div className="space-y-2"><Label htmlFor="client">Cliente</Label><Select required onValueChange={(val) => setFormValues(p => ({...p, clientId: val}))}><SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger><SelectContent>{clients?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2">
+              <Label htmlFor="client">Cliente</Label>
+              <Select required onValueChange={(val) => setFormValues(p => ({...p, clientId: val}))}>
+                <SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger>
+                <SelectContent>{clients?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="product">Cargar desde Pieza (Opcional)</Label>
+              <Select onValueChange={handleLoadProduct}>
+                <SelectTrigger className="bg-primary/5 border-primary/20">
+                  <Package className="mr-2 h-4 w-4 text-primary" />
+                  <SelectValue placeholder="Selecciona una pieza del catálogo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {products?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Esto rellenará automáticamente los materiales y el tiempo de impresión.</p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="date">Fecha</Label>
               <Input
@@ -602,13 +618,26 @@ export default function QuotesPage() {
                 required
               />
             </div>
-            <div className="space-y-2"><Label htmlFor="description">Descripción</Label><Textarea id="description" name="description" placeholder="Descripción del trabajo..." onChange={(e) => setFormValues(p => ({...p, description: e.target.value}))} /></div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción del Trabajo</Label>
+              <Textarea id="description" name="description" value={formValues.description} placeholder="Descripción de la pieza o servicio..." onChange={(e) => setFormValues(p => ({...p, description: e.target.value}))} />
+            </div>
+
+            <Separator />
 
             <div>
                 <Label>Materiales (Filamentos)</Label>
                 <div className="mt-2 space-y-2">
-                    {formValues.materials.map((mat, index) => (
-                        <div key={mat.key} className="flex gap-2 items-center"><Select onValueChange={(val) => updateMaterial(mat.key, 'filamentId', val)}><SelectTrigger><SelectValue placeholder="Filamento"/></SelectTrigger><SelectContent>{filaments?.map(f => <SelectItem key={f.id} value={f.id}>{f.name} - {f.color}</SelectItem>)}</SelectContent></Select><Input type="number" placeholder="gramos" onChange={(e) => updateMaterial(mat.key, 'grams', parseFloat(e.target.value) || 0)} className="w-28"/><Button variant="ghost" size="icon" onClick={() => removeMaterial(mat.key)}><Trash2 className="h-4 w-4 text-destructive"/></Button></div>
+                    {formValues.materials.map((mat) => (
+                        <div key={mat.key} className="flex gap-2 items-center">
+                          <Select value={mat.filamentId} onValueChange={(val) => updateMaterial(mat.key, 'filamentId', val)}>
+                            <SelectTrigger><SelectValue placeholder="Filamento"/></SelectTrigger>
+                            <SelectContent>{filaments?.map(f => <SelectItem key={f.id} value={f.id}>{f.name} - {f.color}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <Input type="number" value={mat.grams || ""} placeholder="gramos" onChange={(e) => updateMaterial(mat.key, 'grams', parseFloat(e.target.value) || 0)} className="w-28"/>
+                          <Button variant="ghost" size="icon" onClick={() => removeMaterial(mat.key)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                        </div>
                     ))}
                 </div>
                 <Button variant="outline" size="sm" className="mt-2" onClick={addMaterial}>Añadir Filamento</Button>
@@ -617,17 +646,33 @@ export default function QuotesPage() {
             <div>
                 <Label>Accesorios</Label>
                  <div className="mt-2 space-y-2">
-                    {formValues.accessories.map((acc, index) => (
-                        <div key={acc.key} className="flex gap-2 items-center"><Select onValueChange={(val) => updateAccessory(acc.key, 'accessoryId', val)}><SelectTrigger><SelectValue placeholder="Accesorio"/></SelectTrigger><SelectContent>{accessoriesData?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select><Input type="number" placeholder="cantidad" onChange={(e) => updateAccessory(acc.key, 'quantity', parseInt(e.target.value) || 0)} className="w-28" /><Button variant="ghost" size="icon" onClick={() => removeAccessory(acc.key)}><Trash2 className="h-4 w-4 text-destructive"/></Button></div>
+                    {formValues.accessories.map((acc) => (
+                        <div key={acc.key} className="flex gap-2 items-center">
+                          <Select value={acc.accessoryId} onValueChange={(val) => updateAccessory(acc.key, 'accessoryId', val)}>
+                            <SelectTrigger><SelectValue placeholder="Accesorio"/></SelectTrigger>
+                            <SelectContent>{accessoriesData?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <Input type="number" value={acc.quantity || ""} placeholder="cant." onChange={(e) => updateAccessory(acc.key, 'quantity', parseInt(e.target.value) || 0)} className="w-28" />
+                          <Button variant="ghost" size="icon" onClick={() => removeAccessory(acc.key)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                        </div>
                     ))}
                 </div>
                 <Button variant="outline" size="sm" className="mt-2" onClick={addAccessory}>Añadir Accesorio</Button>
             </div>
 
-            <div className="space-y-2"><Label htmlFor="printingTimeHours">Tiempo de Impresión (horas)</Label><Input id="printingTimeHours" type="number" onChange={(e) => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} required /></div>
+            <div className="space-y-2">
+              <Label htmlFor="printingTimeHours">Tiempo de Impresión (horas)</Label>
+              <Input id="printingTimeHours" type="number" step="0.5" value={formValues.printingTimeHours || ""} onChange={(e) => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} required />
+            </div>
           </div>
-          <div className="mt-4 rounded-lg border bg-card p-4"><h3 className="text-lg font-semibold">Precio Calculado</h3><p className="text-3xl font-bold text-primary mt-2">{settings.currency}{calculatedPrice.toFixed(2)}</p><p className="text-sm text-muted-foreground">Basado en los costos configurados y el margen de beneficio.</p></div>
-          <SheetFooter className="mt-6"><Button type="button" onClick={handleCreateQuote} disabled={!canCreateQuote}>Confirmar Cotización</Button></SheetFooter>
+          <div className="mt-4 rounded-lg border bg-card p-4">
+            <h3 className="text-lg font-semibold">Precio Calculado</h3>
+            <p className="text-3xl font-bold text-primary mt-2">{settings.currency}{calculatedPrice.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground">Puedes ajustar los materiales arriba para cambiar el precio.</p>
+          </div>
+          <SheetFooter className="mt-6">
+            <Button type="button" onClick={handleCreateQuote} disabled={!canCreateQuote}>Confirmar Cotización</Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 
