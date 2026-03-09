@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Pencil } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -109,9 +109,18 @@ export default function InventoryPage() {
     }));
   };
 
-  const handleAddFilament = () => {
+  const resetFilamentForm = () => {
     setEditingFilamentId(null);
     setFilamentFormData(defaultFilamentForm);
+  };
+
+  const resetAccessoryForm = () => {
+    setEditingAccessoryId(null);
+    setAccessoryFormData(defaultAccessoryForm);
+  };
+
+  const handleAddFilament = () => {
+    resetFilamentForm();
     setIsFilamentSheetOpen(true);
   };
 
@@ -129,29 +138,20 @@ export default function InventoryPage() {
 
   const handleDeleteFilament = async (filamentId: string) => {
     if (!user) return;
-    const filamentDocRef = doc(
-      firestore,
-      "users",
-      user.uid,
-      "filaments",
-      filamentId
-    );
+    const filamentDocRef = doc(firestore, "users", user.uid, "filaments", filamentId);
     const filamentSnap = await getDoc(filamentDocRef);
     if (filamentSnap.exists()) {
-      const filamentData = filamentSnap.data();
       await addDoc(collection(firestore, "users", user.uid, "trash"), {
         originalId: filamentSnap.id,
         originalCollection: "filaments",
         deletedAt: new Date().toISOString(),
-        data: filamentData,
+        data: filamentSnap.data(),
       });
       await deleteDoc(filamentDocRef);
     }
   };
 
-  const handleFilamentFormSubmit = (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleFilamentFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user) return;
 
@@ -170,8 +170,7 @@ export default function InventoryPage() {
   };
 
   const handleAddAccessory = () => {
-    setEditingAccessoryId(null);
-    setAccessoryFormData(defaultAccessoryForm);
+    resetAccessoryForm();
     setIsAccessorySheetOpen(true);
   };
 
@@ -187,29 +186,20 @@ export default function InventoryPage() {
 
   const handleDeleteAccessory = async (accessoryId: string) => {
     if (!user) return;
-    const accessoryDocRef = doc(
-      firestore,
-      "users",
-      user.uid,
-      "accessories",
-      accessoryId
-    );
+    const accessoryDocRef = doc(firestore, "users", user.uid, "accessories", accessoryId);
     const accessorySnap = await getDoc(accessoryDocRef);
     if (accessorySnap.exists()) {
-      const accessoryData = accessorySnap.data();
       await addDoc(collection(firestore, "users", user.uid, "trash"), {
         originalId: accessorySnap.id,
         originalCollection: "accessories",
         deletedAt: new Date().toISOString(),
-        data: accessoryData,
+        data: accessorySnap.data(),
       });
       await deleteDoc(accessoryDocRef);
     }
   };
 
-  const handleAccessoryFormSubmit = (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleAccessoryFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user) return;
 
@@ -251,338 +241,167 @@ export default function InventoryPage() {
 
         <TabsContent value="filaments">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {isLoadingFilaments &&
-              Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-32" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-24 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            {!isLoadingFilaments &&
-              filaments?.map((filament) => (
-                <Card key={filament.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="line-clamp-1">{filament.name}</CardTitle>
-                        <CardDescription>{filament.color}</CardDescription>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="flex h-6 w-6 rounded-full border shadow-sm shrink-0"
-                          style={{
-                            backgroundColor: filament.colorHex || filament.color
-                              .toLowerCase()
-                              .replace(/ /g, ""),
-                          }}
-                        ></div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditFilament(filament)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteFilament(filament.id)}
-                              className="text-destructive"
-                            >
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+            {isLoadingFilaments && Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-24 w-full" /></CardContent></Card>
+            ))}
+            {!isLoadingFilaments && filaments?.map((filament) => (
+              <Card key={filament.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="line-clamp-1">{filament.name}</CardTitle>
+                      <CardDescription>{filament.color}</CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Nivel de Stock</span>
-                        <span>{filament.stockLevel}g / {filament.spoolWeight || 1000}g</span>
-                      </div>
-                      <Progress
-                        value={(filament.stockLevel / (filament.spoolWeight || 1000)) * 100}
-                        className="mt-1 h-2"
-                      />
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex h-6 w-6 rounded-full border shadow-sm shrink-0"
+                        style={{ backgroundColor: filament.colorHex || "#3b82f6" }}
+                      ></div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditFilament(filament)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteFilament(filament.id)} className="text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">
-                        Costo por kg
-                      </span>
-                      <span className="font-medium">
-                        {settings.currency}
-                        {filament.costPerKg.toFixed(2)}
-                      </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Nivel de Stock</span>
+                      <span>{filament.stockLevel}g / {filament.spoolWeight || 1000}g</span>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <Progress value={(filament.stockLevel / (filament.spoolWeight || 1000)) * 100} className="mt-1 h-2" />
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Costo por kg</span>
+                    <span className="font-medium">{settings.currency}{filament.costPerKg.toFixed(2)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
           {!isLoadingFilaments && filaments?.length === 0 && (
-            <div className="col-span-full py-10 text-center text-muted-foreground">
-              No hay filamentos para mostrar.
-            </div>
+            <div className="py-10 text-center text-muted-foreground">No hay filamentos para mostrar.</div>
           )}
         </TabsContent>
 
         <TabsContent value="accessories">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {isLoadingAccessories &&
-              Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-32" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-24 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            {!isLoadingAccessories &&
-              accessories?.map((accessory) => (
-                <Card key={accessory.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="line-clamp-1">{accessory.name}</CardTitle>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-haspopup="true"
-                            size="icon"
-                            variant="ghost"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditAccessory(accessory)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleDeleteAccessory(accessory.id)
-                            }
-                            className="text-destructive"
-                          >
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Nivel de Stock
-                      </span>
-                      <span>{accessory.stockLevel} unidades</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm mt-2">
-                      <span className="text-muted-foreground">
-                        Costo por unidad
-                      </span>
-                      <span className="font-medium">
-                        {settings.currency}
-                        {accessory.cost.toFixed(2)}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            {isLoadingAccessories && Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-24 w-full" /></CardContent></Card>
+            ))}
+            {!isLoadingAccessories && accessories?.map((accessory) => (
+              <Card key={accessory.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="line-clamp-1">{accessory.name}</CardTitle>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEditAccessory(accessory)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteAccessory(accessory.id)} className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Stock</span>
+                    <span>{accessory.stockLevel} unidades</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-2">
+                    <span className="text-muted-foreground">Costo unidad</span>
+                    <span className="font-medium">{settings.currency}{accessory.cost.toFixed(2)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
           {!isLoadingAccessories && accessories?.length === 0 && (
-            <div className="col-span-full py-10 text-center text-muted-foreground">
-              No hay accesorios para mostrar.
-            </div>
+            <div className="py-10 text-center text-muted-foreground">No hay accesorios para mostrar.</div>
           )}
         </TabsContent>
       </Tabs>
 
-      <Sheet
-        open={isFilamentSheetOpen}
-        onOpenChange={(isOpen) => {
-          setIsFilamentSheetOpen(isOpen);
-          if (!isOpen) {
-            setEditingFilamentId(null);
-            setFilamentFormData(defaultFilamentForm);
-          };
-        }}
-      >
+      <Sheet open={isFilamentSheetOpen} onOpenChange={(open) => { setIsFilamentSheetOpen(open); if (!open) resetFilamentForm(); }}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>{editingFilamentId ? "Editar Filamento" : "Añadir Nuevo Filamento"}</SheetTitle>
-            <SheetDescription>
-              Completa los detalles para gestionar tu stock de filamento.
-            </SheetDescription>
+            <SheetTitle>{editingFilamentId ? "Editar Filamento" : "Añadir Filamento"}</SheetTitle>
+            <SheetDescription>Gestiona los detalles de tu material de impresión.</SheetDescription>
           </SheetHeader>
-          <form onSubmit={handleFilamentFormSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nombre
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={filamentFormData.name}
-                  onChange={handleFilamentInputChange}
-                  className="col-span-3"
-                  required
-                  placeholder="Ej: PLA, PETG"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="color" className="text-right">
-                  Color (Texto)
-                </Label>
-                <Input
-                  id="color"
-                  name="color"
-                  value={filamentFormData.color}
-                  onChange={handleFilamentInputChange}
-                  className="col-span-3"
-                  required
-                  placeholder="Ej: Rojo, Negro Carbono"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="colorHex" className="text-right">
-                  Color Visual
-                </Label>
-                <div className="col-span-3 flex items-center gap-3">
-                  <Input
-                    id="colorHex"
-                    name="colorHex"
-                    type="color"
-                    value={filamentFormData.colorHex}
-                    onChange={handleFilamentInputChange}
-                    className="w-16 h-10 p-1 cursor-pointer"
-                  />
-                  <span className="text-sm text-muted-foreground font-mono uppercase">{filamentFormData.colorHex}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="stockLevel" className="text-right">
-                  Stock (g)
-                </Label>
-                <Input
-                  id="stockLevel"
-                  name="stockLevel"
-                  type="number"
-                  value={filamentFormData.stockLevel}
-                  onChange={handleFilamentInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="costPerKg" className="text-right">
-                  Costo por Kg
-                </Label>
-                <Input
-                  id="costPerKg"
-                  name="costPerKg"
-                  type="number"
-                  step="0.01"
-                  value={filamentFormData.costPerKg}
-                  onChange={handleFilamentInputChange}
-                  className="col-span-3"
-                  required
-                />
+          <form onSubmit={handleFilamentFormSubmit} className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre</Label>
+              <Input id="name" name="name" value={filamentFormData.name} onChange={handleFilamentInputChange} required placeholder="Ej: PLA, PETG" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="color">Color (Nombre)</Label>
+              <Input id="color" name="color" value={filamentFormData.color} onChange={handleFilamentInputChange} required placeholder="Ej: Rojo, Azul" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="colorHex">Color Visual</Label>
+              <div className="flex items-center gap-3">
+                <Input id="colorHex" name="colorHex" type="color" value={filamentFormData.colorHex} onChange={handleFilamentInputChange} className="w-16 h-10 p-1 cursor-pointer" />
+                <span className="text-sm font-mono">{filamentFormData.colorHex}</span>
               </div>
             </div>
-            <SheetFooter>
-              <Button type="submit">
-                {editingFilamentId ? "Guardar Cambios" : "Crear Filamento"}
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="stockLevel">Stock (gramos)</Label>
+              <Input id="stockLevel" name="stockLevel" type="number" value={filamentFormData.stockLevel} onChange={handleFilamentInputChange} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="costPerKg">Costo por Kg</Label>
+              <Input id="costPerKg" name="costPerKg" type="number" step="0.01" value={filamentFormData.costPerKg} onChange={handleFilamentInputChange} required />
+            </div>
+            <SheetFooter className="mt-4">
+              <Button type="submit">{editingFilamentId ? "Guardar Cambios" : "Crear Filamento"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
 
-      <Sheet
-        open={isAccessorySheetOpen}
-        onOpenChange={(isOpen) => {
-          setIsAccessorySheetOpen(isOpen);
-          if (!isOpen) {
-            setEditingAccessoryId(null);
-            setAccessoryFormData(defaultAccessoryForm);
-          };
-        }}
-      >
+      <Sheet open={isAccessorySheetOpen} onOpenChange={(open) => { setIsAccessorySheetOpen(open); if (!open) resetAccessoryForm(); }}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>{editingAccessoryId ? "Editar Accesorio" : "Añadir Nuevo Accesorio"}</SheetTitle>
-            <SheetDescription>
-              Completa los detalles para gestionar tu stock de accesorios.
-            </SheetDescription>
+            <SheetTitle>{editingAccessoryId ? "Editar Accesorio" : "Añadir Accesorio"}</SheetTitle>
+            <SheetDescription>Gestiona los detalles de tus componentes extra.</SheetDescription>
           </SheetHeader>
-          <form onSubmit={handleAccessoryFormSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nombre
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={accessoryFormData.name}
-                  onChange={handleAccessoryInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="stockLevel" className="text-right">
-                  Stock (unidades)
-                </Label>
-                <Input
-                  id="stockLevel"
-                  name="stockLevel"
-                  type="number"
-                  value={accessoryFormData.stockLevel}
-                  onChange={handleAccessoryInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="cost" className="text-right">
-                  Costo (por unidad)
-                </Label>
-                <Input
-                  id="cost"
-                  name="cost"
-                  type="number"
-                  step="0.01"
-                  value={accessoryFormData.cost}
-                  onChange={handleAccessoryInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
+          <form onSubmit={handleAccessoryFormSubmit} className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="acc-name">Nombre</Label>
+              <Input id="acc-name" name="name" value={accessoryFormData.name} onChange={handleAccessoryInputChange} required />
             </div>
-            <SheetFooter>
-              <Button type="submit">
-                {editingAccessoryId ? "Guardar Cambios" : "Crear Accesorio"}
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="acc-stock">Stock (unidades)</Label>
+              <Input id="acc-stock" name="stockLevel" type="number" value={accessoryFormData.stockLevel} onChange={handleAccessoryInputChange} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="acc-cost">Costo por Unidad</Label>
+              <Input id="acc-cost" name="cost" type="number" step="0.01" value={accessoryFormData.cost} onChange={handleAccessoryInputChange} required />
+            </div>
+            <SheetFooter className="mt-4">
+              <Button type="submit">{editingAccessoryId ? "Guardar Cambios" : "Crear Accesorio"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>

@@ -103,7 +103,7 @@ export default function CatalogPage() {
   };
   const removeAccessory = (key: number) => setFormValues(prev => ({...prev, accessories: prev.accessories.filter(a => a.key !== key)}));
   const updateAccessory = (key: number, field: string, value: string | number) => {
-    setFormValues(prev => ({...prev, accessories: prev.accessories.map(a => a.key === key ? {...a, [field]: value} : m)}));
+    setFormValues(prev => ({...prev, accessories: prev.accessories.map(a => a.key === key ? {...a, [field]: value} : a)}));
   };
 
   React.useEffect(() => {
