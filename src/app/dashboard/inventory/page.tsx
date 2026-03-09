@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Pencil } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -35,6 +35,7 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
@@ -48,7 +49,7 @@ type AccessoryFormData = Omit<Accessory, "id">;
 const defaultFilamentForm: FilamentFormData = {
   name: "",
   color: "",
-  colorHex: "#3b82f6", // Default blue
+  colorHex: "#3b82f6",
   stockLevel: 0,
   costPerKg: 0,
 };
@@ -79,10 +80,12 @@ export default function InventoryPage() {
     useCollection<Accessory>(accessoriesQuery);
 
   const [isFilamentSheetOpen, setIsFilamentSheetOpen] = React.useState(false);
+  const [editingFilamentId, setEditingFilamentId] = React.useState<string | null>(null);
   const [filamentFormData, setFilamentFormData] =
     React.useState<FilamentFormData>(defaultFilamentForm);
 
   const [isAccessorySheetOpen, setIsAccessorySheetOpen] = React.useState(false);
+  const [editingAccessoryId, setEditingAccessoryId] = React.useState<string | null>(null);
   const [accessoryFormData, setAccessoryFormData] =
     React.useState<AccessoryFormData>(defaultAccessoryForm);
 
@@ -107,7 +110,20 @@ export default function InventoryPage() {
   };
 
   const handleAddFilament = () => {
+    setEditingFilamentId(null);
     setFilamentFormData(defaultFilamentForm);
+    setIsFilamentSheetOpen(true);
+  };
+
+  const handleEditFilament = (filament: Filament) => {
+    setEditingFilamentId(filament.id);
+    setFilamentFormData({
+      name: filament.name,
+      color: filament.color,
+      colorHex: filament.colorHex || "#3b82f6",
+      stockLevel: filament.stockLevel,
+      costPerKg: filament.costPerKg,
+    });
     setIsFilamentSheetOpen(true);
   };
 
@@ -139,18 +155,33 @@ export default function InventoryPage() {
     event.preventDefault();
     if (!user) return;
 
-    const newFilamentData = {
-      ...filamentFormData,
-      spoolWeight: filamentFormData.stockLevel,
-    };
-
-    const filamentsCollection = collection(firestore, `users/${user.uid}/filaments`);
-    addDocumentNonBlocking(filamentsCollection, newFilamentData);
+    if (editingFilamentId) {
+      const filamentRef = doc(firestore, "users", user.uid, "filaments", editingFilamentId);
+      updateDocumentNonBlocking(filamentRef, filamentFormData);
+    } else {
+      const newFilamentData = {
+        ...filamentFormData,
+        spoolWeight: filamentFormData.stockLevel,
+      };
+      const filamentsCollection = collection(firestore, `users/${user.uid}/filaments`);
+      addDocumentNonBlocking(filamentsCollection, newFilamentData);
+    }
     setIsFilamentSheetOpen(false);
   };
 
   const handleAddAccessory = () => {
+    setEditingAccessoryId(null);
     setAccessoryFormData(defaultAccessoryForm);
+    setIsAccessorySheetOpen(true);
+  };
+
+  const handleEditAccessory = (accessory: Accessory) => {
+    setEditingAccessoryId(accessory.id);
+    setAccessoryFormData({
+      name: accessory.name,
+      stockLevel: accessory.stockLevel,
+      cost: accessory.cost,
+    });
     setIsAccessorySheetOpen(true);
   };
 
@@ -182,8 +213,13 @@ export default function InventoryPage() {
     event.preventDefault();
     if (!user) return;
 
-    const accessoriesCollection = collection(firestore, `users/${user.uid}/accessories`);
-    addDocumentNonBlocking(accessoriesCollection, accessoryFormData);
+    if (editingAccessoryId) {
+      const accessoryRef = doc(firestore, "users", user.uid, "accessories", editingAccessoryId);
+      updateDocumentNonBlocking(accessoryRef, accessoryFormData);
+    } else {
+      const accessoriesCollection = collection(firestore, `users/${user.uid}/accessories`);
+      addDocumentNonBlocking(accessoriesCollection, accessoryFormData);
+    }
     setIsAccessorySheetOpen(false);
   };
 
@@ -232,12 +268,12 @@ export default function InventoryPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle>{filament.name}</CardTitle>
+                        <CardTitle className="line-clamp-1">{filament.name}</CardTitle>
                         <CardDescription>{filament.color}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
                         <div
-                          className="flex h-6 w-6 rounded-full border shadow-sm"
+                          className="flex h-6 w-6 rounded-full border shadow-sm shrink-0"
                           style={{
                             backgroundColor: filament.colorHex || filament.color
                               .toLowerCase()
@@ -257,6 +293,10 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditFilament(filament)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteFilament(filament.id)}
                               className="text-destructive"
@@ -317,7 +357,7 @@ export default function InventoryPage() {
                 <Card key={accessory.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <CardTitle>{accessory.name}</CardTitle>
+                      <CardTitle className="line-clamp-1">{accessory.name}</CardTitle>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -331,6 +371,10 @@ export default function InventoryPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditAccessory(accessory)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
                               handleDeleteAccessory(accessory.id)
@@ -376,15 +420,16 @@ export default function InventoryPage() {
         onOpenChange={(isOpen) => {
           setIsFilamentSheetOpen(isOpen);
           if (!isOpen) {
+            setEditingFilamentId(null);
             setFilamentFormData(defaultFilamentForm);
           };
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Añadir Nuevo Filamento</SheetTitle>
+            <SheetTitle>{editingFilamentId ? "Editar Filamento" : "Añadir Nuevo Filamento"}</SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo filamento.
+              Completa los detalles para gestionar tu stock de filamento.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFilamentFormSubmit}>
@@ -465,7 +510,7 @@ export default function InventoryPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                Crear Filamento
+                {editingFilamentId ? "Guardar Cambios" : "Crear Filamento"}
               </Button>
             </SheetFooter>
           </form>
@@ -477,15 +522,16 @@ export default function InventoryPage() {
         onOpenChange={(isOpen) => {
           setIsAccessorySheetOpen(isOpen);
           if (!isOpen) {
+            setEditingAccessoryId(null);
             setAccessoryFormData(defaultAccessoryForm);
           };
         }}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Añadir Nuevo Accesorio</SheetTitle>
+            <SheetTitle>{editingAccessoryId ? "Editar Accesorio" : "Añadir Nuevo Accesorio"}</SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo accesorio.
+              Completa los detalles para gestionar tu stock de accesorios.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleAccessoryFormSubmit}>
@@ -535,7 +581,7 @@ export default function InventoryPage() {
             </div>
             <SheetFooter>
               <Button type="submit">
-                Crear Accesorio
+                {editingAccessoryId ? "Guardar Cambios" : "Crear Accesorio"}
               </Button>
             </SheetFooter>
           </form>
