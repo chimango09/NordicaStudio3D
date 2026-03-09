@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -47,6 +48,7 @@ type AccessoryFormData = Omit<Accessory, "id">;
 const defaultFilamentForm: FilamentFormData = {
   name: "",
   color: "",
+  colorHex: "#3b82f6", // Default blue
   stockLevel: 0,
   costPerKg: 0,
 };
@@ -83,8 +85,6 @@ export default function InventoryPage() {
   const [isAccessorySheetOpen, setIsAccessorySheetOpen] = React.useState(false);
   const [accessoryFormData, setAccessoryFormData] =
     React.useState<AccessoryFormData>(defaultAccessoryForm);
-
-  const isLoading = isLoadingFilaments || isLoadingAccessories;
 
   const handleFilamentInputChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -237,9 +237,9 @@ export default function InventoryPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div
-                          className="flex h-6 w-6 rounded-full border"
+                          className="flex h-6 w-6 rounded-full border shadow-sm"
                           style={{
-                            backgroundColor: filament.color
+                            backgroundColor: filament.colorHex || filament.color
                               .toLowerCase()
                               .replace(/ /g, ""),
                           }}
@@ -400,11 +400,12 @@ export default function InventoryPage() {
                   onChange={handleFilamentInputChange}
                   className="col-span-3"
                   required
+                  placeholder="Ej: PLA, PETG"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="color" className="text-right">
-                  Color
+                  Color (Texto)
                 </Label>
                 <Input
                   id="color"
@@ -413,7 +414,24 @@ export default function InventoryPage() {
                   onChange={handleFilamentInputChange}
                   className="col-span-3"
                   required
+                  placeholder="Ej: Rojo, Negro Carbono"
                 />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="colorHex" className="text-right">
+                  Color Visual
+                </Label>
+                <div className="col-span-3 flex items-center gap-3">
+                  <Input
+                    id="colorHex"
+                    name="colorHex"
+                    type="color"
+                    value={filamentFormData.colorHex}
+                    onChange={handleFilamentInputChange}
+                    className="w-16 h-10 p-1 cursor-pointer"
+                  />
+                  <span className="text-sm text-muted-foreground font-mono uppercase">{filamentFormData.colorHex}</span>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="stockLevel" className="text-right">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -72,6 +73,7 @@ type ExpenseFormData = {
   // Filament fields
   filamentName: string;
   filamentColor: string;
+  filamentColorHex: string;
   grams: number;
 };
 
@@ -89,6 +91,7 @@ const defaultExpenseForm: ExpenseFormData = {
   date: getTodayLocalYYYYMMDD(),
   filamentName: "",
   filamentColor: "",
+  filamentColorHex: "#3b82f6",
   grams: 0,
 };
 
@@ -141,6 +144,7 @@ export default function ExpensesPage() {
         ...prev,
         filamentName: selectedFilament.name,
         filamentColor: selectedFilament.color,
+        filamentColorHex: selectedFilament.colorHex || "#3b82f6",
       }));
     }
   };
@@ -232,7 +236,8 @@ export default function ExpensesPage() {
           const filamentRef = doc(firestore,`users/${user.uid}/filaments`,filamentDoc.id);
           await updateDoc(filamentRef, {
             stockLevel: newTotalStockInG,
-            costPerKg: newAverageCostPerKg
+            costPerKg: newAverageCostPerKg,
+            colorHex: formData.filamentColorHex,
           });
 
         } else {
@@ -240,6 +245,7 @@ export default function ExpensesPage() {
           await addDoc(filamentsCollection, {
             name: formData.filamentName,
             color: formData.filamentColor,
+            colorHex: formData.filamentColorHex,
             stockLevel: formData.grams,
             costPerKg: newCostPerKg,
             spoolWeight: formData.grams,
@@ -555,7 +561,7 @@ export default function ExpensesPage() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="filamentColor" className="text-right">
-                      Color
+                      Color (Texto)
                     </Label>
                     <Input
                       id="filamentColor"
@@ -566,6 +572,22 @@ export default function ExpensesPage() {
                       required
                       placeholder="Ej: Rojo, Negro"
                     />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="filamentColorHex" className="text-right">
+                      Color Visual
+                    </Label>
+                    <div className="col-span-3 flex items-center gap-3">
+                      <Input
+                        id="filamentColorHex"
+                        name="filamentColorHex"
+                        type="color"
+                        value={formData.filamentColorHex}
+                        onChange={handleInputChange}
+                        className="w-16 h-10 p-1 cursor-pointer"
+                      />
+                      <span className="text-sm text-muted-foreground font-mono uppercase">{formData.filamentColorHex}</span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="grams" className="text-right">

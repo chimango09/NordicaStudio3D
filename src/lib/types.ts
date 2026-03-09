@@ -18,6 +18,7 @@ export interface Filament {
   id: string;
   name: string;
   color: string;
+  colorHex?: string; // Hexadecimal color for visual representation
   stockLevel: number; // in grams
   costPerKg: number;
   spoolWeight?: number;
