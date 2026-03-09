@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -105,11 +106,15 @@ export default function ClientsPage() {
     event.preventDefault();
     if (!user) return;
 
+    // Clean up empty strings to store as undefined if preferred, 
+    // but Firestore handles empty strings fine as well.
+    const submissionData = { ...formData };
+
     const clientsCollection = collection(
       firestore,
       `users/${user.uid}/clients`
     );
-    addDocumentNonBlocking(clientsCollection, formData);
+    addDocumentNonBlocking(clientsCollection, submissionData);
 
     setIsSheetOpen(false);
   };
@@ -242,9 +247,9 @@ export default function ClientsPage() {
                       <TableCell className="font-medium">
                         {client.name}
                       </TableCell>
-                      <TableCell>{client.email}</TableCell>
-                      <TableCell>{client.phone}</TableCell>
-                      <TableCell>{client.address}</TableCell>
+                      <TableCell>{client.email || "-"}</TableCell>
+                      <TableCell>{client.phone || "-"}</TableCell>
+                      <TableCell>{client.address || "-"}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -295,7 +300,7 @@ export default function ClientsPage() {
           <SheetHeader>
             <SheetTitle>Añadir Nuevo Cliente</SheetTitle>
             <SheetDescription>
-              Rellena los detalles para el nuevo cliente.
+              Rellena los detalles para el nuevo cliente. Solo el nombre es obligatorio.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
@@ -315,7 +320,7 @@ export default function ClientsPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="email" className="text-right">
-                  Email
+                  Email (opcional)
                 </Label>
                 <Input
                   id="email"
@@ -328,7 +333,7 @@ export default function ClientsPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="phone" className="text-right">
-                  Teléfono
+                  Teléfono (opcional)
                 </Label>
                 <Input
                   id="phone"
@@ -340,7 +345,7 @@ export default function ClientsPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="address" className="text-right">
-                  Dirección
+                  Dirección (opcional)
                 </Label>
                 <Input
                   id="address"
