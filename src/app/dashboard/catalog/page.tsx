@@ -2,14 +2,13 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Trash2, Package } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Package, Scale } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +41,7 @@ import {
   useFirestore,
   useCollection,
   addDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useUser,
 } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
@@ -77,6 +77,7 @@ export default function CatalogPage() {
   const { data: accessories } = useCollection<Accessory>(accessoriesQuery);
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
   const [formValues, setFormValues] = React.useState({
     name: "",
     description: "",
@@ -120,7 +121,6 @@ export default function CatalogPage() {
     }));
   }, []);
 
-  // Optimized cost calculation effect
   React.useEffect(() => {
     const { materials, accessories: formAccessories, printingTimeHours } = formValues;
     
@@ -145,7 +145,6 @@ export default function CatalogPage() {
         newPrice = Math.ceil(finalPrice / 100) * 100;
     }
 
-    // Only update state if values changed to prevent re-render loops
     setCosts(prev => {
       if (prev.materialCost === materialCost && prev.accessoryCost === accessoryCost && 
           prev.machineCost === machineCost && prev.electricityCost === electricityCost) return prev;
@@ -157,15 +156,32 @@ export default function CatalogPage() {
   }, [formValues, filaments, accessories, settings]);
 
   const resetForm = React.useCallback(() => {
+    setEditingProductId(null);
     setFormValues({ name: "", description: "", printingTimeHours: 0, materials: [], accessories: [] });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
   }, []);
 
+  const handleEditProduct = (product: Product) => {
+    setEditingProductId(product.id);
+    let currentKey = 0;
+    const formMaterials = (product.materials || []).map(m => ({ ...m, key: currentKey++ }));
+    const formAccessories = (product.accessories || []).map(a => ({ ...a, key: currentKey++ }));
+    
+    setItemKey(currentKey);
+    setFormValues({
+      name: product.name,
+      description: product.description || "",
+      printingTimeHours: product.printingTimeHours,
+      materials: formMaterials,
+      accessories: formAccessories,
+    });
+    setIsSheetOpen(true);
+  };
+
   const handleCreateProduct = () => {
     if (!user || !formValues.name) return;
 
-    const productsCollection = collection(firestore, `users/${user.uid}/products`);
     const productData = {
       name: formValues.name,
       description: formValues.description,
@@ -176,7 +192,14 @@ export default function CatalogPage() {
       ...costs,
     };
 
-    addDocumentNonBlocking(productsCollection, productData);
+    if (editingProductId) {
+      const productRef = doc(firestore, "users", user.uid, "products", editingProductId);
+      updateDocumentNonBlocking(productRef, productData);
+    } else {
+      const productsCollection = collection(firestore, `users/${user.uid}/products`);
+      addDocumentNonBlocking(productsCollection, productData);
+    }
+
     setIsSheetOpen(false);
     resetForm();
   };
@@ -203,7 +226,7 @@ export default function CatalogPage() {
         description="Define tus piezas habituales para cotizarlas rápidamente."
       />
       <div className="flex justify-end mb-6">
-        <Button onClick={() => setIsSheetOpen(true)}>
+        <Button onClick={() => { resetForm(); setIsSheetOpen(true); }}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Nueva Pieza
         </Button>
@@ -215,10 +238,10 @@ export default function CatalogPage() {
         ))}
         {!isLoadingProducts && products?.map((product) => (
           <Card key={product.id}>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">{product.name}</CardTitle>
+                <CardTitle className="text-lg line-clamp-1">{product.name}</CardTitle>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -226,7 +249,12 @@ export default function CatalogPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)} className="text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
@@ -239,7 +267,13 @@ export default function CatalogPage() {
                   <span className="text-muted-foreground">Tiempo:</span>
                   <span>{product.printingTimeHours} hs</span>
                 </div>
-                <div className="flex justify-between font-bold text-primary mt-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Scale className="h-3 w-3" /> Peso:
+                  </span>
+                  <span>{product.materials?.reduce((sum, m) => sum + m.grams, 0) || 0}g</span>
+                </div>
+                <div className="flex justify-between font-bold text-primary mt-2 pt-2 border-t">
                   <span>Precio Sugerido:</span>
                   <span>{settings.currency}{product.price.toFixed(2)}</span>
                 </div>
@@ -258,7 +292,7 @@ export default function CatalogPage() {
       <Sheet open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) resetForm(); }}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Añadir Pieza al Catálogo</SheetTitle>
+            <SheetTitle>{editingProductId ? "Editar Pieza" : "Añadir Pieza al Catálogo"}</SheetTitle>
             <SheetDescription>Configura los detalles técnicos y el precio de esta pieza.</SheetDescription>
           </SheetHeader>
           <div className="grid gap-6 py-4">
@@ -278,11 +312,11 @@ export default function CatalogPage() {
               <div className="mt-2 space-y-2">
                 {formValues.materials.map((mat) => (
                   <div key={mat.key} className="flex gap-2 items-center">
-                    <Select onValueChange={(val) => updateMaterial(mat.key, 'filamentId', val)}>
+                    <Select value={mat.filamentId} onValueChange={(val) => updateMaterial(mat.key, 'filamentId', val)}>
                       <SelectTrigger><SelectValue placeholder="Filamento"/></SelectTrigger>
                       <SelectContent>{filaments?.map(f => <SelectItem key={f.id} value={f.id}>{f.name} - {f.color}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Input type="number" placeholder="gramos" onChange={(e) => updateMaterial(mat.key, 'grams', parseFloat(e.target.value) || 0)} className="w-28"/>
+                    <Input type="number" placeholder="gramos" value={mat.grams || ""} onChange={(e) => updateMaterial(mat.key, 'grams', parseFloat(e.target.value) || 0)} className="w-28"/>
                     <Button variant="ghost" size="icon" onClick={() => removeMaterial(mat.key)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
                   </div>
                 ))}
@@ -295,11 +329,11 @@ export default function CatalogPage() {
               <div className="mt-2 space-y-2">
                 {formValues.accessories.map((acc) => (
                   <div key={acc.key} className="flex gap-2 items-center">
-                    <Select onValueChange={(val) => updateAccessory(acc.key, 'accessoryId', val)}>
+                    <Select value={acc.accessoryId} onValueChange={(val) => updateAccessory(acc.key, 'accessoryId', val)}>
                       <SelectTrigger><SelectValue placeholder="Accesorio"/></SelectTrigger>
                       <SelectContent>{accessories?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Input type="number" placeholder="cant." onChange={(e) => updateAccessory(acc.key, 'quantity', parseInt(e.target.value) || 0)} className="w-24" />
+                    <Input type="number" placeholder="cant." value={acc.quantity || ""} onChange={(e) => updateAccessory(acc.key, 'quantity', parseInt(e.target.value) || 0)} className="w-24" />
                     <Button variant="ghost" size="icon" onClick={() => removeAccessory(acc.key)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
                   </div>
                 ))}
@@ -309,7 +343,7 @@ export default function CatalogPage() {
 
             <div className="space-y-2">
               <Label htmlFor="hours">Tiempo de Impresión (horas)</Label>
-              <Input id="hours" type="number" step="0.5" value={formValues.printingTimeHours} onChange={e => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} />
+              <Input id="hours" type="number" step="0.5" value={formValues.printingTimeHours || ""} onChange={e => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} />
             </div>
 
             <div className="rounded-lg border bg-muted/50 p-4">
@@ -319,7 +353,9 @@ export default function CatalogPage() {
             </div>
           </div>
           <SheetFooter>
-            <Button onClick={handleCreateProduct} disabled={!formValues.name}>Guardar en Catálogo</Button>
+            <Button onClick={handleCreateProduct} disabled={!formValues.name}>
+              {editingProductId ? "Guardar Cambios" : "Guardar en Catálogo"}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
