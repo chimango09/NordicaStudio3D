@@ -95,25 +95,25 @@ export default function QuotesPage() {
 
   const clientsQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'clients');
+    return collection(firestore, "users", user.uid, "clients");
   }, [user, firestore]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
 
   const filamentsQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'filaments');
+    return collection(firestore, "users", user.uid, "filaments");
   }, [user, firestore]);
   const { data: filaments, isLoading: isLoadingFilaments } = useCollection<Filament>(filamentsQuery);
   
   const accessoriesQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'accessories');
+    return collection(firestore, "users", user.uid, "accessories");
   }, [user, firestore]);
   const { data: accessoriesData, isLoading: isLoadingAccessories } = useCollection<Accessory>(accessoriesQuery);
 
   const productsQuery = React.useMemo(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'products');
+    return collection(firestore, "users", user.uid, "products");
   }, [user, firestore]);
   const { data: products } = useCollection<Product>(productsQuery);
 
