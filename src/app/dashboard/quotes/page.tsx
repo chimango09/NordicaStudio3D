@@ -349,8 +349,7 @@ export default function QuotesPage() {
     const emitterLocation = settings.companyLocation;
 
     const startYPos = 20;
-    let textXPos = 20;
-    let logoHeight = 0;
+    let textXPos = 20;    let logoHeight = 0;
 
     if (settings.companyLogo) {
       try {
