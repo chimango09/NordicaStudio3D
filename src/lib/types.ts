@@ -91,6 +91,10 @@ export interface Settings {
     companyLocation: string;
     companyLogo?: string;
     backupReminderDays: number;
+    // Bank details
+    bankAlias: string;
+    bankAccountName: string;
+    bankName: string;
 }
 
 export interface TrashItem {

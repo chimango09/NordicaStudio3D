@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -166,8 +167,8 @@ export default function QuotesPage() {
     if (!product) return;
 
     let currentKey = itemKey;
-    const formMaterials = product.materials.map(m => ({ ...m, key: currentKey++ }));
-    const formAccessories = product.accessories.map(a => ({ ...a, key: currentKey++ }));
+    const formMaterials = (product.materials || []).map(m => ({ ...m, key: currentKey++ }));
+    const formAccessories = (product.accessories || []).map(a => ({ ...a, key: currentKey++ }));
     
     setItemKey(currentKey);
     setFormValues(prev => ({
@@ -435,7 +436,30 @@ export default function QuotesPage() {
             const paymentConditions = "El inicio de la impresión se realizará únicamente una vez abonado el anticipo del 50%.\nEl 50% restante deberá abonarse al momento de la entrega del producto.";
             const splitPayment = doc.splitTextToSize(paymentConditions, 170);
             doc.text(splitPayment, 20, finalY + 7);
-            finalY += splitPayment.length * 5 + 10;
+            finalY += splitPayment.length * 5 + 8;
+
+            // Datos para transferencia
+            if (settings.bankAlias || settings.bankAccountName) {
+              doc.setFillColor(248, 250, 252);
+              doc.setDrawColor(226, 232, 240);
+              doc.rect(20, finalY, 170, 25, 'F');
+              
+              doc.setFontSize(10);
+              doc.setFont('helvetica', 'bold');
+              doc.text('DATOS PARA TRANSFERENCIA:', 25, finalY + 7);
+              
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(9);
+              let bankText = "";
+              if (settings.bankAlias) bankText += `ALIAS: ${settings.bankAlias}  |  `;
+              if (settings.bankAccountName) bankText += `TITULAR: ${settings.bankAccountName}`;
+              doc.text(bankText, 25, finalY + 14);
+              if (settings.bankName) doc.text(`BANCO: ${settings.bankName}`, 25, finalY + 20);
+              
+              finalY += 32;
+            } else {
+              finalY += 5;
+            }
             
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');

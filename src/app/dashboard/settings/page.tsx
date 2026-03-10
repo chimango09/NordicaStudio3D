@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -11,7 +12,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,9 @@ const settingsSchema = z.object({
   profitMargin: z.coerce.number().min(0, "El margen debe ser no negativo."),
   currency: z.string().min(1, "El símbolo de la moneda es obligatorio."),
   backupReminderDays: z.coerce.number().min(0, "Debe ser no negativo."),
+  bankAlias: z.string().optional(),
+  bankAccountName: z.string().optional(),
+  bankName: z.string().optional(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -230,25 +233,6 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
-             <Card className="mt-6">
-                <CardHeader>
-                    <Skeleton className="h-7 w-56" />
-                    <Skeleton className="h-4 w-full max-w-md" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-48" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                     <div className="space-y-2">
-                        <Skeleton className="h-4 w-36" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                </CardContent>
-                <CardFooter className="border-t px-6 py-4">
-                    <Skeleton className="h-10 w-36" />
-                </CardFooter>
-            </Card>
         </>
       )
   }
@@ -300,9 +284,32 @@ export default function SettingsPage() {
                     {companyLogoValue && (
                         <div className="mt-2 flex items-center gap-4">
                             <img src={companyLogoValue} alt="Previsualización del logo" className="h-20 w-auto object-contain border p-1 rounded-md bg-muted/30" />
-                            <Button variant="ghost" size="sm" onClick={() => setValue('companyLogo', '', { shouldDirty: true })}>Eliminar logo</Button>
+                            <Button variant="ghost" size="sm" type="button" onClick={() => setValue('companyLogo', '', { shouldDirty: true })}>Eliminar logo</Button>
                         </div>
                     )}
+                </div>
+            </CardContent>
+            </Card>
+
+            <Card>
+            <CardHeader>
+                <CardTitle>Información de Pago</CardTitle>
+                <CardDescription>
+                Estos datos aparecerán en el PDF de la cotización para que el cliente realice la transferencia.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                <Label htmlFor="bankAlias">Alias de CBU/CVU</Label>
+                <Input id="bankAlias" placeholder="Ej: mi.emprendimiento.3d" {...register("bankAlias")} />
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="bankAccountName">Nombre del Titular</Label>
+                <Input id="bankAccountName" placeholder="Ej: Juan Pérez" {...register("bankAccountName")} />
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="bankName">Banco / Entidad</Label>
+                <Input id="bankName" placeholder="Ej: Mercado Pago, Banco Nación..." {...register("bankName")} />
                 </div>
             </CardContent>
             </Card>

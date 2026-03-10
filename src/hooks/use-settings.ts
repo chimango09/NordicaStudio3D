@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -18,6 +19,9 @@ const DEFAULT_SETTINGS: Settings = {
   companyLocation: 'Buenos Aires, Argentina',
   companyLogo: '',
   backupReminderDays: 7,
+  bankAlias: '',
+  bankAccountName: '',
+  bankName: '',
 };
 
 export function useSettings() {
@@ -36,7 +40,20 @@ export function useSettings() {
     }
     const settingsObj = settingsData.reduce((acc, setting) => {
       // Don't parse numbers for string settings
-      if (['companyName', 'companyResponsible', 'companyPhone', 'companyEmail', 'companyLocation', 'currency', 'companyLogo'].includes(setting.id)) {
+      const stringKeys = [
+        'companyName', 
+        'companyResponsible', 
+        'companyPhone', 
+        'companyEmail', 
+        'companyLocation', 
+        'currency', 
+        'companyLogo',
+        'bankAlias',
+        'bankAccountName',
+        'bankName'
+      ];
+      
+      if (stringKeys.includes(setting.id)) {
         return { ...acc, [setting.id]: setting.value };
       }
       const value = parseFloat(setting.value);
