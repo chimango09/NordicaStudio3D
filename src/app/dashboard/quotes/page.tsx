@@ -167,13 +167,13 @@ export default function QuotesPage() {
     return hasContent && calculatedPrice > 0 && !!formValues.clientId;
   }, [calculatedPrice, formValues]);
   
-  const resetForm = () => {
+  const resetForm = React.useCallback(() => {
     setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [], date: getTodayLocalYYYYMMDD() });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
-  };
+  }, []);
 
-  const handleLoadProduct = (productId: string) => {
+  const handleLoadProduct = React.useCallback((productId: string) => {
     const product = products?.find(p => p.id === productId);
     if (!product) return;
 
@@ -189,28 +189,44 @@ export default function QuotesPage() {
       materials: formMaterials,
       accessories: formAccessories,
     }));
-  };
+  }, [products, itemKey]);
 
-  const addMaterial = () => {
+  const addMaterial = React.useCallback(() => {
     setFormValues(prev => ({...prev, materials: [...prev.materials, {key: itemKey, filamentId: "", grams: 0}]}));
     setItemKey(k => k + 1);
-  };
-  const removeMaterial = (key: number) => setFormValues(prev => ({...prev, materials: prev.materials.filter(m => m.key !== key)}));
-  const updateMaterial = (key: number, field: string, value: string | number) => {
-    setFormValues(prev => ({...prev, materials: prev.materials.map(m => m.key === key ? {...m, [field]: value} : m)}));
-  };
+  }, [itemKey]);
+
+  const removeMaterial = React.useCallback((key: number) => {
+    setFormValues(prev => ({...prev, materials: prev.materials.filter(m => m.key !== key)}));
+  }, []);
+
+  const updateMaterial = React.useCallback((key: number, field: string, value: string | number) => {
+    setFormValues(prev => ({
+      ...prev, 
+      materials: prev.materials.map(m => m.key === key ? {...m, [field]: value} : m)
+    }));
+  }, []);
   
-  const addAccessory = () => {
+  const addAccessory = React.useCallback(() => {
     setFormValues(prev => ({...prev, accessories: [...prev.accessories, {key: itemKey, accessoryId: "", quantity: 0}]}));
     setItemKey(k => k + 1);
-  };
-  const removeAccessory = (key: number) => setFormValues(prev => ({...prev, accessories: prev.accessories.filter(a => a.key !== key)}));
-  const updateAccessory = (key: number, field: string, value: string | number) => {
-    setFormValues(prev => ({...prev, accessories: prev.accessories.map(a => a.key === key ? {...a, [field]: value} : a)}));
-  };
+  }, [itemKey]);
 
+  const removeAccessory = React.useCallback((key: number) => {
+    setFormValues(prev => ({...prev, accessories: prev.accessories.filter(a => a.key !== key)}));
+  }, []);
+
+  const updateAccessory = React.useCallback((key: number, field: string, value: string | number) => {
+    setFormValues(prev => ({
+      ...prev, 
+      accessories: prev.accessories.map(a => a.key === key ? {...a, [field]: value} : a)
+    }));
+  }, []);
+
+  // Optimized cost calculation effect
   React.useEffect(() => {
     const { materials, accessories, printingTimeHours } = formValues;
+    
     const materialCost = materials.reduce((sum, mat) => {
       const filament = filaments?.find(f => f.id === mat.filamentId);
       return sum + (filament ? (filament.costPerKg / 1000) * mat.grams : 0);
@@ -225,16 +241,22 @@ export default function QuotesPage() {
     const electricityCost = (settings.printerConsumptionWatts / 1000) * (printingTimeHours || 0) * settings.electricityCost;
     
     const totalCost = materialCost + accessoryCost + machineCost + electricityCost;
+    let newPrice = 0;
     
     if (totalCost > 0) {
         const finalPrice = totalCost * (1 + settings.profitMargin / 100);
-        const roundedPrice = Math.ceil(finalPrice / 100) * 100;
-        setCosts({ materialCost, accessoryCost, machineCost, electricityCost });
-        setCalculatedPrice(roundedPrice);
-    } else {
-        setCalculatedPrice(0);
-        setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
+        newPrice = Math.ceil(finalPrice / 100) * 100;
     }
+
+    // Only update state if values changed to prevent re-render loops
+    setCosts(prev => {
+      if (prev.materialCost === materialCost && prev.accessoryCost === accessoryCost && 
+          prev.machineCost === machineCost && prev.electricityCost === electricityCost) return prev;
+      return { materialCost, accessoryCost, machineCost, electricityCost };
+    });
+
+    setCalculatedPrice(prev => prev === newPrice ? prev : newPrice);
+
   }, [formValues, filaments, accessoriesData, settings]);
 
   const handleCreateQuote = () => {
