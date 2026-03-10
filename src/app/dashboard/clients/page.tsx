@@ -1,8 +1,7 @@
-
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { PlusCircle, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,13 +18,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +44,7 @@ import {
 import type { Client } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ClientFormData = Omit<Client, "id">;
 
@@ -106,16 +99,9 @@ export default function ClientsPage() {
     event.preventDefault();
     if (!user) return;
 
-    // Clean up empty strings to store as undefined if preferred, 
-    // but Firestore handles empty strings fine as well.
     const submissionData = { ...formData };
-
-    const clientsCollection = collection(
-      firestore,
-      `users/${user.uid}/clients`
-    );
+    const clientsCollection = collection(firestore, `users/${user.uid}/clients`);
     addDocumentNonBlocking(clientsCollection, submissionData);
-
     setIsSheetOpen(false);
   };
 
@@ -164,41 +150,24 @@ export default function ClientsPage() {
                 <Card key={client.id}>
                   <CardHeader className="flex flex-row items-center justify-between pb-4">
                     <CardTitle className="text-lg">{client.name}</CardTitle>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClient(client.id)}
-                          className="text-destructive"
-                        >
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleDeleteClient(client.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     {client.email && (
                       <div className="text-sm text-muted-foreground">
-                        <span className="font-semibold">Email:</span>{" "}
-                        {client.email}
+                        <span className="font-semibold">Email:</span> {client.email}
                       </div>
                     )}
                     {client.phone && (
                       <div className="text-sm text-muted-foreground mt-1">
-                        <span className="font-semibold">Teléfono:</span>{" "}
-                        {client.phone}
+                        <span className="font-semibold">Teléfono:</span> {client.phone}
                       </div>
                     )}
                     {client.address && (
                       <div className="text-sm text-muted-foreground mt-1">
-                        <span className="font-semibold">Dirección:</span>{" "}
-                        {client.address}
+                        <span className="font-semibold">Dirección:</span> {client.address}
                       </div>
                     )}
                   </CardContent>
@@ -215,63 +184,38 @@ export default function ClientsPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Dirección</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Acciones</span>
-                  </TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading &&
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell>
-                        <Skeleton className="h-5 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-36" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-48" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-8 w-8" />
-                      </TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
                 {!isLoading &&
                   clients?.map((client) => (
                     <TableRow key={client.id}>
-                      <TableCell className="font-medium">
-                        {client.name}
-                      </TableCell>
+                      <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell>{client.email || "-"}</TableCell>
                       <TableCell>{client.phone || "-"}</TableCell>
                       <TableCell>{client.address || "-"}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClient(client.id)}
-                              className="text-destructive"
-                            >
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell className="text-right">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClient(client.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Eliminar Cliente</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -287,73 +231,29 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      <Sheet
-        open={isSheetOpen}
-        onOpenChange={(isOpen) => {
-          setIsSheetOpen(isOpen);
-          if (!isOpen) {
-            resetState();
-          }
-        }}
-      >
+      <Sheet open={isSheetOpen} onOpenChange={(isOpen) => { setIsSheetOpen(isOpen); if (!isOpen) resetState(); }}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Añadir Nuevo Cliente</SheetTitle>
-            <SheetDescription>
-              Rellena los detalles para el nuevo cliente. Solo el nombre es obligatorio.
-            </SheetDescription>
+            <SheetDescription>Rellena los detalles para el nuevo cliente. Solo el nombre es obligatorio.</SheetDescription>
           </SheetHeader>
           <form onSubmit={handleFormSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nombre
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  required
-                />
+                <Label htmlFor="name" className="text-right">Nombre</Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleInputChange} className="col-span-3" required />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email (opcional)
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email || ""}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                />
+                <Label htmlFor="email" className="text-right">Email (opc.)</Label>
+                <Input id="email" name="email" type="email" value={formData.email || ""} onChange={handleInputChange} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Teléfono (opcional)
-                </Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone || ""}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                />
+                <Label htmlFor="phone" className="text-right">Teléfono (opc.)</Label>
+                <Input id="phone" name="phone" value={formData.phone || ""} onChange={handleInputChange} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="address" className="text-right">
-                  Dirección (opcional)
-                </Label>
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address || ""}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                />
+                <Label htmlFor="address" className="text-right">Dirección (opc.)</Label>
+                <Input id="address" name="address" value={formData.address || ""} onChange={handleInputChange} className="col-span-3" />
               </div>
             </div>
             <SheetFooter>

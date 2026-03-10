@@ -1,8 +1,7 @@
-
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Trash2, FileDown, Package } from "lucide-react";
+import { PlusCircle, Trash2, FileDown, Eye, Package } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -21,17 +20,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -72,13 +60,13 @@ import type { Quote, Client, Filament, Accessory, QuoteMaterial, QuoteAccessory,
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type QuoteWithClientName = Quote & { clientName: string; id: string };
 
 type FormMaterial = QuoteMaterial & { key: number };
 type FormAccessory = QuoteAccessory & { key: number };
 
-// TypeScript declaration for the autoTable plugin
 declare module 'jspdf' {
     interface jsPDF {
       autoTable: (options: any) => jsPDF;
@@ -223,7 +211,6 @@ export default function QuotesPage() {
     }));
   }, []);
 
-  // Optimized cost calculation effect
   React.useEffect(() => {
     const { materials, accessories, printingTimeHours } = formValues;
     
@@ -248,7 +235,6 @@ export default function QuotesPage() {
         newPrice = Math.ceil(finalPrice / 100) * 100;
     }
 
-    // Only update state if values changed to prevent re-render loops
     setCosts(prev => {
       if (prev.materialCost === materialCost && prev.accessoryCost === accessoryCost && 
           prev.machineCost === machineCost && prev.electricityCost === electricityCost) return prev;
@@ -349,7 +335,8 @@ export default function QuotesPage() {
     const emitterLocation = settings.companyLocation;
 
     const startYPos = 20;
-    let textXPos = 20;    let logoHeight = 0;
+    let textXPos = 20;
+    let logoHeight = 0;
 
     if (settings.companyLogo) {
       try {
@@ -502,18 +489,6 @@ export default function QuotesPage() {
         <CardContent>
           {/* Mobile view */}
           <div className="grid gap-4 md:hidden">
-            {isLoading && Array.from({length: 3}).map((_, i) => (
-                <Card key={i}>
-                    <CardHeader className="pb-2">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                        <Skeleton className="h-6 w-24" />
-                        <Skeleton className="h-6 w-20" />
-                    </CardContent>
-                </Card>
-            ))}
             {!isLoading && quotes.map((quote) => (
                 <Card key={quote.id}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -521,32 +496,32 @@ export default function QuotesPage() {
                             <CardTitle className="text-base font-medium">{quote.clientName}</CardTitle>
                             <CardDescription>{formatDateForDisplay(quote.date)}</CardDescription>
                         </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
-                                    <FileDown className="mr-2 h-4 w-4" />
-                                    <span>Descargar PDF</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger><span>Cambiar Estado</span></DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent>
-                                        <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Pendiente')}>Pendiente</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Imprimiendo')}>Imprimiendo</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuSub>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(quote)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteQuote(quote.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                         <Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge>
-                         <div className="text-lg font-bold">{settings.currency}{quote.price.toFixed(2)}</div>
+                    <CardContent className="space-y-4">
+                         <div className="flex items-center justify-between">
+                            <Select value={quote.status} onValueChange={(val: Quote['status']) => handleStatusChange(quote.id, val)}>
+                              <SelectTrigger className="w-[140px] h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                <SelectItem value="Imprimiendo">Imprimiendo</SelectItem>
+                                <SelectItem value="Entregado">Entregado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div className="text-lg font-bold">{settings.currency}{quote.price.toFixed(2)}</div>
+                         </div>
+                         <Button variant="outline" className="w-full h-8 text-xs" onClick={() => handleDownloadPdf(quote)}>
+                            <FileDown className="mr-2 h-3 w-3" /> Descargar PDF
+                         </Button>
                     </CardContent>
                 </Card>
             ))}
@@ -556,42 +531,67 @@ export default function QuotesPage() {
             <Table>
                 <TableHeader>
                 <TableRow>
-                    <TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Total</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
                 {isLoading && Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-6 w-20"/></TableCell><TableCell><Skeleton className="h-5 w-20 ml-auto"/></TableCell><TableCell><Skeleton className="h-8 w-8"/></TableCell></TableRow>
+                    <TableRow key={i}><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-6 w-20"/></TableCell><TableCell><Skeleton className="h-5 w-20 ml-auto"/></TableCell><TableCell><Skeleton className="h-8 w-8 ml-auto"/></TableCell></TableRow>
                 ))}
                 {!isLoading && quotes.map((quote) => (
                     <TableRow key={quote.id}>
                     <TableCell className="font-medium">{quote.clientName}</TableCell>
                     <TableCell>{formatDateForDisplay(quote.date)}</TableCell>
-                    <TableCell><Badge variant={quote.status === 'Entregado' ? 'success' : quote.status === 'Imprimiendo' ? 'secondary' : 'outline'}>{quote.status}</Badge></TableCell>
-                    <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
                     <TableCell>
-                        <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleViewDetails(quote)}>Ver Detalles</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDownloadPdf(quote)}>
-                                <FileDown className="mr-2 h-4 w-4" />
-                                <span>Descargar PDF</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuSub>
-                                <DropdownMenuSubTrigger><span>Cambiar Estado</span></DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Pendiente')}>Pendiente</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Imprimiendo')}>Imprimiendo</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'Entregado')}>Entregado</DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                            </DropdownMenuSub>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDeleteQuote(quote.id)} className="text-destructive">Eliminar</DropdownMenuItem>
-                        </DropdownMenuContent>
-                        </DropdownMenu>
+                      <Select value={quote.status} onValueChange={(val: Quote['status']) => handleStatusChange(quote.id, val)}>
+                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pendiente">Pendiente</SelectItem>
+                          <SelectItem value="Imprimiendo">Imprimiendo</SelectItem>
+                          <SelectItem value="Entregado">Entregado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end items-center gap-1">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleViewDetails(quote)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Ver Detalles</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleDownloadPdf(quote)}>
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Descargar PDF</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteQuote(quote.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Eliminar</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </TableCell>
                     </TableRow>
                 ))}

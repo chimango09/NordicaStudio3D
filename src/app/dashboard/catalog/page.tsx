@@ -1,8 +1,7 @@
-
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Package, Scale } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Package, Scale } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -29,13 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
 import {
   useFirestore,
@@ -49,6 +41,7 @@ import type { Product, Filament, Accessory, QuoteMaterial, QuoteAccessory } from
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type FormMaterial = QuoteMaterial & { key: number };
 type FormAccessory = QuoteAccessory & { key: number };
@@ -243,20 +236,28 @@ export default function CatalogPage() {
                 <Package className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg line-clamp-1">{product.name}</CardTitle>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                    <Pencil className="mr-2 h-4 w-4" /> Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditProduct(product)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Editar</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteProduct(product.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Eliminar</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem] mb-4">

@@ -1,8 +1,7 @@
-
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -22,13 +21,6 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { collection, doc, addDoc, getDoc, deleteDoc } from "firebase/firestore";
 import {
@@ -42,6 +34,7 @@ import { useSettings } from "@/hooks/use-settings";
 import type { Filament, Accessory } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type FilamentFormData = Omit<Filament, "id" | "spoolWeight">;
 type AccessoryFormData = Omit<Accessory, "id">;
@@ -246,40 +239,42 @@ export default function InventoryPage() {
             ))}
             {!isLoadingFilaments && filaments?.map((filament) => (
               <Card key={filament.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="line-clamp-1">{filament.name}</CardTitle>
-                      <CardDescription>{filament.color}</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex h-6 w-6 rounded-full border shadow-sm shrink-0"
-                        style={{ backgroundColor: filament.colorHex || "#3b82f6" }}
-                      ></div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="line-clamp-1">{filament.name}</CardTitle>
+                    <CardDescription>{filament.color}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="h-6 w-6 rounded-full border shadow-sm mr-2"
+                      style={{ backgroundColor: filament.colorHex || "#3b82f6" }}
+                    ></div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditFilament(filament)}>
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditFilament(filament)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteFilament(filament.id)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Editar</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteFilament(filament.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Eliminar</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Nivel de Stock</span>
+                      <span>Stock</span>
                       <span>{filament.stockLevel}g / {filament.spoolWeight || 1000}g</span>
                     </div>
                     <Progress value={(filament.stockLevel / (filament.spoolWeight || 1000)) * 100} className="mt-1 h-2" />
@@ -304,25 +299,29 @@ export default function InventoryPage() {
             ))}
             {!isLoadingAccessories && accessories?.map((accessory) => (
               <Card key={accessory.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="line-clamp-1">{accessory.name}</CardTitle>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditAccessory(accessory)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteAccessory(accessory.id)} className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <CardTitle className="line-clamp-1">{accessory.name}</CardTitle>
+                  <div className="flex items-center gap-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditAccessory(accessory)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Editar</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteAccessory(accessory.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Eliminar</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </CardHeader>
                 <CardContent>
