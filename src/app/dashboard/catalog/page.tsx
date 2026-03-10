@@ -1,7 +1,8 @@
+
 "use client";
 
 import * as React from "react";
-import { PlusCircle, Pencil, Trash2, Package, Scale } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Package, Scale, Search } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -71,6 +72,11 @@ export default function CatalogPage() {
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
+  
+  // Filtering and Sorting State
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [sortBy, setSortBy] = React.useState("newest");
+
   const [formValues, setFormValues] = React.useState({
     name: "",
     description: "",
@@ -175,7 +181,7 @@ export default function CatalogPage() {
   const handleCreateProduct = () => {
     if (!user || !formValues.name) return;
 
-    const productData = {
+    const productData: any = {
       name: formValues.name,
       description: formValues.description,
       printingTimeHours: formValues.printingTimeHours,
@@ -189,6 +195,7 @@ export default function CatalogPage() {
       const productRef = doc(firestore, "users", user.uid, "products", editingProductId);
       updateDocumentNonBlocking(productRef, productData);
     } else {
+      productData.createdAt = new Date().toISOString();
       const productsCollection = collection(firestore, `users/${user.uid}/products`);
       addDocumentNonBlocking(productsCollection, productData);
     }
@@ -212,14 +219,60 @@ export default function CatalogPage() {
     }
   };
 
+  // Logic for filtering and sorting
+  const filteredAndSortedProducts = React.useMemo(() => {
+    if (!products) return [];
+    
+    return products
+      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .sort((a, b) => {
+        if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+        if (sortBy === "name-desc") return b.name.localeCompare(a.name);
+        if (sortBy === "newest") {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        }
+        if (sortBy === "oldest") {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateA - dateB;
+        }
+        return 0;
+      });
+  }, [products, searchQuery, sortBy]);
+
   return (
     <>
       <PageHeader
         title="Catálogo de Piezas"
         description="Define tus piezas habituales para cotizarlas rápidamente."
       />
-      <div className="flex justify-end mb-6">
-        <Button onClick={() => { resetForm(); setIsSheetOpen(true); }}>
+      
+      <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
+        <div className="flex flex-1 flex-col sm:flex-row gap-2 max-w-2xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar pieza..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Más recientes</SelectItem>
+              <SelectItem value="oldest">Más antiguos</SelectItem>
+              <SelectItem value="name-asc">Nombre (A-Z)</SelectItem>
+              <SelectItem value="name-desc">Nombre (Z-A)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => { resetForm(); setIsSheetOpen(true); }} className="w-full md:w-auto">
           <PlusCircle className="mr-2 h-4 w-4" />
           Nueva Pieza
         </Button>
@@ -229,7 +282,7 @@ export default function CatalogPage() {
         {isLoadingProducts && Array.from({length: 4}).map((_, i) => (
           <Card key={i}><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-20 w-full" /></CardContent></Card>
         ))}
-        {!isLoadingProducts && products?.map((product) => (
+        {!isLoadingProducts && filteredAndSortedProducts?.map((product) => (
           <Card key={product.id}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div className="flex items-center gap-2">
@@ -284,9 +337,9 @@ export default function CatalogPage() {
         ))}
       </div>
 
-      {!isLoadingProducts && products?.length === 0 && (
+      {!isLoadingProducts && filteredAndSortedProducts?.length === 0 && (
         <div className="py-20 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-          No tienes piezas en el catálogo todavía.
+          {searchQuery ? "No se encontraron piezas que coincidan con la búsqueda." : "No tienes piezas en el catálogo todavía."}
         </div>
       )}
 

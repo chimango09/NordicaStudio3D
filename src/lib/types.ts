@@ -53,6 +53,7 @@ export interface Product {
   accessoryCost: number;
   machineCost: number;
   electricityCost: number;
+  createdAt?: string;
 }
 
 export interface Quote {
