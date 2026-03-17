@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, Trash2, FileDown, Eye, Package } from "lucide-react";
+import { PlusCircle, Trash2, FileDown, Eye, Package, Percent } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -138,6 +138,7 @@ export default function QuotesPage() {
   const [formValues, setFormValues] = React.useState({
     clientId: "",
     printingTimeHours: 0,
+    profitMargin: 30, // Default local margin
     description: "",
     materials: [] as FormMaterial[],
     accessories: [] as FormAccessory[],
@@ -157,7 +158,7 @@ export default function QuotesPage() {
   }, [calculatedPrice, formValues]);
   
   const resetForm = React.useCallback(() => {
-    setFormValues({ clientId: "", printingTimeHours: 0, description: "", materials: [], accessories: [], date: getTodayLocalYYYYMMDD() });
+    setFormValues({ clientId: "", printingTimeHours: 0, profitMargin: 30, description: "", materials: [], accessories: [], date: getTodayLocalYYYYMMDD() });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
   }, []);
@@ -175,6 +176,7 @@ export default function QuotesPage() {
       ...prev,
       description: product.description || product.name,
       printingTimeHours: product.printingTimeHours,
+      profitMargin: product.profitMargin || 30, // Load the piece's margin
       materials: formMaterials,
       accessories: formAccessories,
     }));
@@ -213,7 +215,7 @@ export default function QuotesPage() {
   }, []);
 
   React.useEffect(() => {
-    const { materials, accessories, printingTimeHours } = formValues;
+    const { materials, accessories, printingTimeHours, profitMargin } = formValues;
     
     const materialCost = materials.reduce((sum, mat) => {
       const filament = filaments?.find(f => f.id === mat.filamentId);
@@ -232,7 +234,7 @@ export default function QuotesPage() {
     let newPrice = 0;
     
     if (totalCost > 0) {
-        const finalPrice = totalCost * (1 + settings.profitMargin / 100);
+        const finalPrice = totalCost * (1 + (profitMargin || 0) / 100);
         newPrice = Math.ceil(finalPrice / 100) * 100;
     }
 
@@ -262,6 +264,7 @@ export default function QuotesPage() {
       clientId: formValues.clientId,
       description: formValues.description,
       printingTimeHours: formValues.printingTimeHours,
+      profitMargin: formValues.profitMargin,
       materials: finalMaterials,
       accessories: finalAccessories,
       price: calculatedPrice,
@@ -438,7 +441,6 @@ export default function QuotesPage() {
             doc.text(splitPayment, 20, finalY + 7);
             finalY += splitPayment.length * 5 + 8;
 
-            // Datos para transferencia
             if (settings.bankAlias || settings.bankAccountName) {
               doc.setFillColor(248, 250, 252);
               doc.setDrawColor(226, 232, 240);
@@ -650,7 +652,7 @@ export default function QuotesPage() {
                   {products?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Esto rellenará automáticamente los materiales y el tiempo de impresión.</p>
+              <p className="text-xs text-muted-foreground">Esto rellenará automáticamente los materiales, el tiempo y el margen habitual.</p>
             </div>
 
             <div className="space-y-2">
@@ -705,15 +707,23 @@ export default function QuotesPage() {
                 <Button variant="outline" size="sm" className="mt-2" onClick={addAccessory}>Añadir Accesorio</Button>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="printingTimeHours">Tiempo de Impresión (horas)</Label>
-              <Input id="printingTimeHours" type="number" step="0.5" value={formValues.printingTimeHours || ""} onChange={(e) => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} required />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="printingTimeHours">Tiempo Impresión (hs)</Label>
+                <Input id="printingTimeHours" type="number" step="0.5" value={formValues.printingTimeHours || ""} onChange={(e) => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profitMargin" className="flex items-center gap-2">
+                  <Percent className="h-4 w-4 text-muted-foreground" /> Ganancia (%)
+                </Label>
+                <Input id="profitMargin" type="number" value={formValues.profitMargin || ""} onChange={(e) => setFormValues(p => ({...p, profitMargin: parseFloat(e.target.value) || 0}))} required />
+              </div>
             </div>
           </div>
           <div className="mt-4 rounded-lg border bg-card p-4">
             <h3 className="text-lg font-semibold">Precio Calculado</h3>
             <p className="text-3xl font-bold text-primary mt-2">{settings.currency}{calculatedPrice.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">Puedes ajustar los materiales arriba para cambiar el precio.</p>
+            <p className="text-sm text-muted-foreground">Incluye materiales, costos operativos y el {formValues.profitMargin}% de ganancia.</p>
           </div>
           <SheetFooter className="mt-6">
             <Button type="button" onClick={handleCreateQuote} disabled={!canCreateQuote}>Confirmar Cotización</Button>
@@ -734,6 +744,7 @@ export default function QuotesPage() {
                     <Separator/>
                     <div className="grid gap-2">
                         <div className="flex justify-between font-bold"><span className="text-muted-foreground">Precio de Venta</span><span>{settings.currency}{selectedQuote.price.toFixed(2)}</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-muted-foreground">Margen aplicado</span><span>{selectedQuote.profitMargin}%</span></div>
                     </div>
                     <Separator/>
                      <div>

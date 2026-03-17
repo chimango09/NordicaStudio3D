@@ -46,7 +46,6 @@ const settingsSchema = z.object({
   electricityCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   machineCost: z.coerce.number().min(0, "El costo debe ser no negativo."),
   printerConsumptionWatts: z.coerce.number().min(0, "El consumo debe ser no negativo."),
-  profitMargin: z.coerce.number().min(0, "El margen debe ser no negativo."),
   currency: z.string().min(1, "El símbolo de la moneda es obligatorio."),
   backupReminderDays: z.coerce.number().min(0, "Debe ser no negativo."),
   bankAlias: z.string().optional(),
@@ -365,22 +364,10 @@ export default function SettingsPage() {
             <CardHeader>
                 <CardTitle>Configuración Financiera</CardTitle>
                 <CardDescription>
-                Gestiona los márgenes de beneficio y la configuración de la moneda.
+                Gestiona la configuración de la moneda local.
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                <Label htmlFor="profitMargin">Margen de Beneficio Predeterminado (%)</Label>
-                <Input
-                    id="profitMargin"
-                    type="number"
-                    step="1"
-                    {...register("profitMargin")}
-                />
-                {errors.profitMargin && (
-                    <p className="text-sm text-destructive">{errors.profitMargin.message}</p>
-                )}
-                </div>
                 <div className="grid gap-2">
                 <Label htmlFor="currency">Símbolo de Moneda</Label>
                 <Input id="currency" {...register("currency")} />

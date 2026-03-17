@@ -49,6 +49,7 @@ export interface Product {
   accessories: QuoteAccessory[];
   printingTimeHours: number;
   price: number;
+  profitMargin: number; // Individual profit margin for the piece
   materialCost: number;
   accessoryCost: number;
   machineCost: number;
@@ -66,6 +67,7 @@ export interface Quote {
   accessories: QuoteAccessory[];
   printingTimeHours: number;
   price: number;
+  profitMargin: number; // Individual profit margin for the quote
   status: 'Pendiente' | 'Imprimiendo' | 'Entregado';
   materialCost: number;
   accessoryCost: number;

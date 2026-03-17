@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, Pencil, Trash2, Package, Scale, Search } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Package, Scale, Search, Percent } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -73,7 +73,6 @@ export default function CatalogPage() {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
   
-  // Filtering and Sorting State
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortBy, setSortBy] = React.useState("newest");
 
@@ -81,6 +80,7 @@ export default function CatalogPage() {
     name: "",
     description: "",
     printingTimeHours: 0,
+    profitMargin: 30, // Default local margin
     materials: [] as FormMaterial[],
     accessories: [] as FormAccessory[],
   });
@@ -121,7 +121,7 @@ export default function CatalogPage() {
   }, []);
 
   React.useEffect(() => {
-    const { materials, accessories: formAccessories, printingTimeHours } = formValues;
+    const { materials, accessories: formAccessories, printingTimeHours, profitMargin } = formValues;
     
     const materialCost = materials.reduce((sum, mat) => {
       const filament = filaments?.find(f => f.id === mat.filamentId);
@@ -140,7 +140,7 @@ export default function CatalogPage() {
     let newPrice = 0;
     
     if (totalCost > 0) {
-        const finalPrice = totalCost * (1 + settings.profitMargin / 100);
+        const finalPrice = totalCost * (1 + (profitMargin || 0) / 100);
         newPrice = Math.ceil(finalPrice / 100) * 100;
     }
 
@@ -156,7 +156,7 @@ export default function CatalogPage() {
 
   const resetForm = React.useCallback(() => {
     setEditingProductId(null);
-    setFormValues({ name: "", description: "", printingTimeHours: 0, materials: [], accessories: [] });
+    setFormValues({ name: "", description: "", printingTimeHours: 0, profitMargin: 30, materials: [], accessories: [] });
     setCalculatedPrice(0);
     setCosts({ materialCost: 0, accessoryCost: 0, machineCost: 0, electricityCost: 0 });
   }, []);
@@ -172,6 +172,7 @@ export default function CatalogPage() {
       name: product.name,
       description: product.description || "",
       printingTimeHours: product.printingTimeHours,
+      profitMargin: product.profitMargin || 30,
       materials: formMaterials,
       accessories: formAccessories,
     });
@@ -185,6 +186,7 @@ export default function CatalogPage() {
       name: formValues.name,
       description: formValues.description,
       printingTimeHours: formValues.printingTimeHours,
+      profitMargin: formValues.profitMargin,
       materials: formValues.materials.map(({ key, ...rest }) => rest),
       accessories: formValues.accessories.map(({ key, ...rest }) => rest),
       price: calculatedPrice,
@@ -219,7 +221,6 @@ export default function CatalogPage() {
     }
   };
 
-  // Logic for filtering and sorting
   const filteredAndSortedProducts = React.useMemo(() => {
     if (!products) return [];
     
@@ -400,10 +401,17 @@ export default function CatalogPage() {
               <Input id="hours" type="number" step="0.5" value={formValues.printingTimeHours || ""} onChange={e => setFormValues(p => ({...p, printingTimeHours: parseFloat(e.target.value) || 0}))} />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="margin" className="flex items-center gap-2">
+                <Percent className="h-4 w-4 text-muted-foreground" /> Margen de Beneficio (%)
+              </Label>
+              <Input id="margin" type="number" value={formValues.profitMargin || ""} onChange={e => setFormValues(p => ({...p, profitMargin: parseFloat(e.target.value) || 0}))} />
+            </div>
+
             <div className="rounded-lg border bg-muted/50 p-4">
               <h4 className="text-sm font-semibold mb-2">Precio Sugerido Calculado</h4>
               <div className="text-3xl font-bold text-primary">{settings.currency}{calculatedPrice.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground mt-1">Basado en tus costos de configuración y margen de beneficio.</p>
+              <p className="text-xs text-muted-foreground mt-1">Basado en tus costos técnicos y el margen de beneficio de esta pieza.</p>
             </div>
           </div>
           <SheetFooter>
