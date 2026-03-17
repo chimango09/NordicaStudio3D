@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, Trash2, FileDown, Eye, Package, Percent } from "lucide-react";
+import { PlusCircle, Trash2, FileDown, Eye, Package, Percent, Clock } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -138,7 +138,7 @@ export default function QuotesPage() {
   const [formValues, setFormValues] = React.useState({
     clientId: "",
     printingTimeHours: 0,
-    profitMargin: 30, // Default local margin
+    profitMargin: 30,
     description: "",
     materials: [] as FormMaterial[],
     accessories: [] as FormAccessory[],
@@ -176,7 +176,7 @@ export default function QuotesPage() {
       ...prev,
       description: product.description || product.name,
       printingTimeHours: product.printingTimeHours,
-      profitMargin: product.profitMargin || 30, // Load the piece's margin
+      profitMargin: product.profitMargin || 30,
       materials: formMaterials,
       accessories: formAccessories,
     }));
@@ -740,42 +740,54 @@ export default function QuotesPage() {
                     <DialogDescription>Desglose de costos y ganancias para la cotización de {selectedQuote.clientName}.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
-                    <div><h4 className="font-medium">Resumen</h4><p className="text-sm text-muted-foreground">{selectedQuote.description || "Sin descripción."}</p></div>
+                    <div>
+                      <h4 className="font-medium">Resumen del Trabajo</h4>
+                      <p className="text-sm text-muted-foreground mb-2">{selectedQuote.description || "Sin descripción."}</p>
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <span>Tiempo de Impresión: {selectedQuote.printingTimeHours} hs</span>
+                      </div>
+                    </div>
                     <Separator/>
                     <div className="grid gap-2">
-                        <div className="flex justify-between font-bold"><span className="text-muted-foreground">Precio de Venta</span><span>{settings.currency}{selectedQuote.price.toFixed(2)}</span></div>
-                        <div className="flex justify-between text-sm"><span className="text-muted-foreground">Margen aplicado</span><span>{selectedQuote.profitMargin}%</span></div>
+                        <div className="flex justify-between font-bold text-lg"><span className="text-muted-foreground">Precio de Venta</span><span>{settings.currency}{selectedQuote.price.toFixed(2)}</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-muted-foreground">Margen de Ganancia Aplicado</span><span>{selectedQuote.profitMargin}%</span></div>
                     </div>
                     <Separator/>
                      <div>
-                        <h4 className="font-medium">Desglose de Costos</h4>
+                        <h4 className="font-medium mb-2">Desglose de Costos</h4>
                          <div className="grid gap-2 mt-2">
-                            <h5 className="text-sm font-medium text-muted-foreground">Materiales</h5>
+                            <h5 className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Materiales</h5>
                             {(selectedQuote.materials || []).map((mat, i) => {
                                 const filament = filaments?.find(f => f.id === mat.filamentId);
                                 const cost = filament ? (filament.costPerKg/1000) * mat.grams : 0;
-                                return <div key={i} className="flex justify-between pl-2"><span className="text-muted-foreground">{filament?.name} ({mat.grams}g)</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
+                                return <div key={i} className="flex justify-between pl-2 text-sm"><span className="text-muted-foreground">{filament?.name || 'Filamento'} ({mat.grams}g)</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
                             })}
-                            <div className="flex justify-between font-medium border-t pt-1 mt-1"><span className="text-muted-foreground">Subtotal Materiales</span><span>{settings.currency}{(selectedQuote.materialCost || 0).toFixed(2)}</span></div>
+                            <div className="flex justify-between font-medium border-t pt-1 mt-1 text-sm"><span className="text-muted-foreground">Subtotal Materiales</span><span>{settings.currency}{(selectedQuote.materialCost || 0).toFixed(2)}</span></div>
                          </div>
-                         <div className="grid gap-2 mt-2">
-                            <h5 className="text-sm font-medium text-muted-foreground">Accesorios</h5>
+                         <div className="grid gap-2 mt-4">
+                            <h5 className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Accesorios</h5>
                             {(selectedQuote.accessories || []).map((acc, i) => {
                                 const accessory = accessoriesData?.find(a => a.id === acc.accessoryId);
                                 const cost = accessory ? accessory.cost * acc.quantity : 0;
-                                return <div key={i} className="flex justify-between pl-2"><span className="text-muted-foreground">{accessory?.name} (x{acc.quantity})</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
+                                return <div key={i} className="flex justify-between pl-2 text-sm"><span className="text-muted-foreground">{accessory?.name || 'Accesorio'} (x{acc.quantity})</span><span>{settings.currency}{cost.toFixed(2)}</span></div>
                             })}
-                            <div className="flex justify-between font-medium border-t pt-1 mt-1"><span className="text-muted-foreground">Subtotal Accesorios</span><span>{settings.currency}{(selectedQuote.accessoryCost || 0).toFixed(2)}</span></div>
+                            <div className="flex justify-between font-medium border-t pt-1 mt-1 text-sm"><span className="text-muted-foreground">Subtotal Accesorios</span><span>{settings.currency}{(selectedQuote.accessoryCost || 0).toFixed(2)}</span></div>
                          </div>
-                         <div className="grid gap-2 mt-2">
-                             <h5 className="text-sm font-medium text-muted-foreground">Costos Operativos</h5>
-                             <div className="flex justify-between pl-2"><span className="text-muted-foreground">Costo de Máquina</span><span>{settings.currency}{(selectedQuote.machineCost || 0).toFixed(2)}</span></div>
-                             <div className="flex justify-between pl-2"><span className="text-muted-foreground">Costo de Electricidad</span><span>{settings.currency}{(selectedQuote.electricityCost || 0).toFixed(2)}</span></div>
+                         <div className="grid gap-2 mt-4">
+                             <h5 className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Costos Operativos</h5>
+                             <div className="flex justify-between pl-2 text-sm"><span className="text-muted-foreground">Uso de Máquina ({selectedQuote.printingTimeHours} hs)</span><span>{settings.currency}{(selectedQuote.machineCost || 0).toFixed(2)}</span></div>
+                             <div className="flex justify-between pl-2 text-sm"><span className="text-muted-foreground">Consumo Eléctrico</span><span>{settings.currency}{(selectedQuote.electricityCost || 0).toFixed(2)}</span></div>
                         </div>
-                        <div className="flex justify-between font-medium mt-2 pt-2 border-t"><span>Costo Total</span><span>{settings.currency}{calculateTotalCost(selectedQuote).toFixed(2)}</span></div>
+                        <div className="flex justify-between font-bold mt-4 pt-2 border-t border-dashed"><span>Costo Total de Producción</span><span>{settings.currency}{calculateTotalCost(selectedQuote).toFixed(2)}</span></div>
                      </div>
-                     <Separator/>
-                     <div className="flex justify-between text-lg font-bold text-primary"><span>Ganancia</span><span>{settings.currency}{calculateProfit(selectedQuote).toFixed(2)}</span></div>
+                     <div className="rounded-lg bg-primary/10 p-4 border border-primary/20">
+                        <div className="flex justify-between text-xl font-bold text-primary">
+                          <span>Ganancia Neta</span>
+                          <span>{settings.currency}{calculateProfit(selectedQuote).toFixed(2)}</span>
+                        </div>
+                        <p className="text-[10px] text-primary/70 mt-1 text-right uppercase tracking-tighter italic">Resultado final para el emprendimiento</p>
+                     </div>
                 </div>
                 </>
             )}
