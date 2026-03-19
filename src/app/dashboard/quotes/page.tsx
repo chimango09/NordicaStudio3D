@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, Trash2, FileDown, Eye, Package, Percent, Clock } from "lucide-react";
+import { PlusCircle, Trash2, FileDown, Eye, Package, Percent, Clock, Search } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -62,6 +62,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type QuoteWithClientName = Quote & { clientName: string; id: string };
 
@@ -82,6 +83,20 @@ const getTodayLocalYYYYMMDD = () => {
   return `${year}-${month}-${day}`;
 };
 
+const statusPriority = { 'Pendiente': 0, 'Imprimiendo': 1, 'Entregado': 2 };
+
+const getStatusColor = (status: Quote['status']) => {
+  switch (status) {
+    case 'Entregado':
+      return 'bg-green-500/20 text-green-500 border-green-500/30';
+    case 'Imprimiendo':
+      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    case 'Pendiente':
+      return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
+};
 
 export default function QuotesPage() {
   const firestore = useFirestore();
@@ -121,14 +136,38 @@ export default function QuotesPage() {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = React.useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [sortBy, setSortBy] = React.useState("priority");
 
   const quotes: QuoteWithClientName[] = React.useMemo(() => {
-    return quotesData?.map(quote => ({
+    if (!quotesData || !clients) return [];
+    
+    return quotesData.map(quote => ({
       ...quote,
       id: quote.id,
-      clientName: clients?.find(c => c.id === quote.clientId)?.name || 'N/A'
-    })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
-  }, [quotesData, clients])
+      clientName: clients.find(c => c.id === quote.clientId)?.name || 'N/A'
+    }));
+  }, [quotesData, clients]);
+
+  const filteredAndSortedQuotes = React.useMemo(() => {
+    return quotes
+      .filter(q => 
+        q.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (q.description || "").toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => {
+        if (sortBy === "priority") {
+          const pA = statusPriority[a.status];
+          const pB = statusPriority[b.status];
+          if (pA !== pB) return pA - pB;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        if (sortBy === "date-desc") return new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (sortBy === "date-asc") return new Date(a.date).getTime() - new Date(b.date).getTime();
+        return 0;
+      });
+  }, [quotes, searchQuery, sortBy]);
 
   const selectedQuote = React.useMemo(() => {
     if (!selectedQuoteId || !quotes) return null;
@@ -499,24 +538,52 @@ export default function QuotesPage() {
         title="Cotizaciones"
         description="Gestiona las ventas y asignación de piezas a tus clientes."
       />
+
+      <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
+        <div className="flex flex-1 flex-col sm:flex-row gap-2 max-w-2xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por cliente o pieza..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="priority">Prioridad por Estado</SelectItem>
+              <SelectItem value="date-desc">Más Recientes</SelectItem>
+              <SelectItem value="date-asc">Más Antiguas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => setIsSheetOpen(true)} className="w-full md:w-auto">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Crear Cotización
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
                 <CardTitle>Lista de Cotizaciones</CardTitle>
-                <CardDescription>Una lista de todas tus cotizaciones.</CardDescription>
+                <CardDescription>Visualiza y gestiona el flujo de tus trabajos.</CardDescription>
             </div>
-            <Button onClick={() => setIsSheetOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Crear Cotización
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
           {/* Mobile view */}
           <div className="grid gap-4 md:hidden">
-            {!isLoading && quotes.map((quote) => (
-                <Card key={quote.id}>
+            {isLoading && Array.from({length: 3}).map((_, i) => (
+                <Card key={i}><CardContent className="p-4"><Skeleton className="h-20 w-full" /></CardContent></Card>
+            ))}
+            {!isLoading && filteredAndSortedQuotes.map((quote) => (
+                <Card key={quote.id} className="overflow-hidden border-l-4" style={{ borderLeftColor: quote.status === 'Pendiente' ? '#eab308' : quote.status === 'Imprimiendo' ? '#3b82f6' : '#22c55e' }}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
                             <CardTitle className="text-base font-medium">{quote.clientName}</CardTitle>
@@ -534,7 +601,7 @@ export default function QuotesPage() {
                     <CardContent className="space-y-4">
                          <div className="flex items-center justify-between">
                             <Select value={quote.status} onValueChange={(val: Quote['status']) => handleStatusChange(quote.id, val)}>
-                              <SelectTrigger className="w-[140px] h-8 text-xs">
+                              <SelectTrigger className={cn("w-[140px] h-8 text-xs font-semibold", getStatusColor(quote.status))}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -568,13 +635,13 @@ export default function QuotesPage() {
                 {isLoading && Array.from({length: 3}).map((_, i) => (
                     <TableRow key={i}><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-5 w-24"/></TableCell><TableCell><Skeleton className="h-6 w-20"/></TableCell><TableCell><Skeleton className="h-5 w-20 ml-auto"/></TableCell><TableCell><Skeleton className="h-8 w-8 ml-auto"/></TableCell></TableRow>
                 ))}
-                {!isLoading && quotes.map((quote) => (
+                {!isLoading && filteredAndSortedQuotes.map((quote) => (
                     <TableRow key={quote.id}>
                     <TableCell className="font-medium">{quote.clientName}</TableCell>
                     <TableCell>{formatDateForDisplay(quote.date)}</TableCell>
                     <TableCell>
                       <Select value={quote.status} onValueChange={(val: Quote['status']) => handleStatusChange(quote.id, val)}>
-                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                        <SelectTrigger className={cn("w-[130px] h-8 text-xs font-semibold border", getStatusColor(quote.status))}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -584,7 +651,7 @@ export default function QuotesPage() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right">{settings.currency}{quote.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-bold">{settings.currency}{quote.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-1">
                         <TooltipProvider>
@@ -625,7 +692,11 @@ export default function QuotesPage() {
             </Table>
           </div>
           
-          {!isLoading && quotes.length === 0 && (<div className="py-10 text-center text-muted-foreground">No hay cotizaciones para mostrar.</div>)}
+          {!isLoading && filteredAndSortedQuotes.length === 0 && (
+            <div className="py-10 text-center text-muted-foreground">
+              {searchQuery ? "No se encontraron cotizaciones para esa búsqueda." : "No hay cotizaciones para mostrar."}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -736,7 +807,10 @@ export default function QuotesPage() {
             {selectedQuote && (
                 <>
                 <DialogHeader>
-                    <DialogTitle>Detalles de la Cotización</DialogTitle>
+                    <div className="flex items-center justify-between mb-2">
+                      <DialogTitle>Detalles de la Cotización</DialogTitle>
+                      <Badge className={cn("font-semibold border", getStatusColor(selectedQuote.status))}>{selectedQuote.status}</Badge>
+                    </div>
                     <DialogDescription>Desglose de costos y ganancias para la cotización de {selectedQuote.clientName}.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
