@@ -68,7 +68,7 @@ export interface Quote {
   printingTimeHours: number;
   price: number;
   profitMargin: number; // Individual profit margin for the quote
-  status: 'Pendiente' | 'Imprimiendo' | 'Entregado';
+  status: 'Pendiente' | 'Imprimiendo' | 'Listo' | 'Entregado';
   materialCost: number;
   accessoryCost: number;
   machineCost: number;

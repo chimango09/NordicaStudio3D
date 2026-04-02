@@ -80,6 +80,10 @@
           "type": "string",
           "description": "Color of the filament."
         },
+        "colorHex": {
+          "type": "string",
+          "description": "Hexadecimal color code for UI."
+        },
         "stockLevel": {
           "type": "number",
           "description": "Current stock level of the filament (e.g., in grams)."
@@ -140,6 +144,10 @@
           "type": "number",
           "description": "Standard printing time in hours."
         },
+        "profitMargin": {
+          "type": "number",
+          "description": "Default profit margin percentage."
+        },
         "materials": {
           "type": "array",
           "description": "Predefined filaments used.",
@@ -169,7 +177,8 @@
         "materialCost": { "type": "number" },
         "accessoryCost": { "type": "number" },
         "machineCost": { "type": "number" },
-        "electricityCost": { "type": "number" }
+        "electricityCost": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price"]
     },
@@ -233,6 +242,10 @@
           "type": "number",
           "description": "Estimated printing time in hours."
         },
+        "profitMargin": {
+          "type": "number",
+          "description": "Profit margin used for this specific quote."
+        },
         "price": {
           "type": "number",
           "description": "Total price of the quote."
@@ -243,6 +256,7 @@
           "enum": [
             "Pendiente",
             "Imprimiendo",
+            "Listo",
             "Entregado"
           ]
         },
@@ -282,11 +296,11 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Name of the setting (e.g., electricityCost, machineUsageCost, profitMargin, currency)."
+          "description": "Name of the setting (e.g., electricityCost, companyName, bankAlias)."
         },
         "value": {
           "type": "string",
-          "description": "Value of the setting. Stored as a string to accommodate different data types."
+          "description": "Value of the setting."
         }
       },
       "required": [
@@ -335,56 +349,47 @@
     "/users/{userId}": {
       "schema": {
         "$ref": "#/entities/User"
-      },
-      "description": "Stores user profile information. `userId` is the document ID from Firebase Authentication."
+      }
     },
     "/users/{userId}/clients/{clientId}": {
       "schema": {
         "$ref": "#/entities/Client"
-      },
-      "description": "Stores client information for a specific user."
+      }
     },
     "/users/{userId}/expenses/{expenseId}": {
       "schema": {
         "$ref": "#/entities/Expense"
-      },
-      "description": "Stores expense records for a specific user."
+      }
     },
     "/users/{userId}/filaments/{filamentId}": {
       "schema": {
         "$ref": "#/entities/Filament"
-      },
-      "description": "Stores filament inventory information for a specific user."
+      }
     },
     "/users/{userId}/accessories/{accessoryId}": {
       "schema": {
         "$ref": "#/entities/Accessory"
-      },
-      "description": "Stores accessory inventory information for a specific user."
+      }
     },
     "/users/{userId}/products/{productId}": {
       "schema": {
         "$ref": "#/entities/Product"
-      },
-      "description": "Stores catalog products (pieces) for a specific user."
+      }
     },
     "/users/{userId}/quotes/{quoteId}": {
       "schema": {
         "$ref": "#/entities/Quote"
-      },
-      "description": "Stores quotes for 3D printing jobs for a specific user."
+      }
     },
     "/users/{userId}/settings/{settingId}": {
       "schema": {
         "$ref": "#/entities/Setting"
-      },
-      "description": "Stores application settings for a specific user."
+      }
     },
     "/users/{userId}/trash/{trashId}": {
       "schema": {
         "$ref": "#/entities/TrashItem"
-      },
-      "description": "Stores soft-deleted items from other collections for a specific user."
+      }
     }
   }
 }

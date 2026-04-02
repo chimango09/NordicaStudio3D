@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -206,18 +207,22 @@ export default function DashboardPage() {
             <CardContent>
                 {isLoading ? <Skeleton className="h-64 w-full" /> :
                  <div className="text-4xl font-bold">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                        <div className="p-4 border rounded-lg">
                             <p className="text-sm font-medium text-muted-foreground">Pendientes</p>
-                            <p className="text-3xl">{quotes?.filter(q => q.status === 'Pendiente').length || 0}</p>
+                            <p className="text-3xl text-yellow-500">{quotes?.filter(q => q.status === 'Pendiente').length || 0}</p>
                         </div>
-                        <div>
+                        <div className="p-4 border rounded-lg">
                             <p className="text-sm font-medium text-muted-foreground">Imprimiendo</p>
-                            <p className="text-3xl">{quotes?.filter(q => q.status === 'Imprimiendo').length || 0}</p>
+                            <p className="text-3xl text-blue-400">{quotes?.filter(q => q.status === 'Imprimiendo').length || 0}</p>
                         </div>
-                        <div>
+                        <div className="p-4 border rounded-lg bg-purple-500/5">
+                            <p className="text-sm font-medium text-muted-foreground">Listas</p>
+                            <p className="text-3xl text-purple-400">{quotes?.filter(q => q.status === 'Listo').length || 0}</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
                             <p className="text-sm font-medium text-muted-foreground">Entregadas</p>
-                            <p className="text-3xl">{quotes?.filter(q => q.status === 'Entregado').length || 0}</p>
+                            <p className="text-3xl text-green-500">{quotes?.filter(q => q.status === 'Entregado').length || 0}</p>
                         </div>
                     </div>
                 </div>

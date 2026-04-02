@@ -83,12 +83,14 @@ const getTodayLocalYYYYMMDD = () => {
   return `${year}-${month}-${day}`;
 };
 
-const statusPriority = { 'Pendiente': 0, 'Imprimiendo': 1, 'Entregado': 2 };
+const statusPriority = { 'Pendiente': 0, 'Imprimiendo': 1, 'Listo': 2, 'Entregado': 3 };
 
 const getStatusColor = (status: Quote['status']) => {
   switch (status) {
     case 'Entregado':
       return 'bg-green-500/20 text-green-500 border-green-500/30';
+    case 'Listo':
+      return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
     case 'Imprimiendo':
       return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     case 'Pendiente':
@@ -583,7 +585,7 @@ export default function QuotesPage() {
                 <Card key={i}><CardContent className="p-4"><Skeleton className="h-20 w-full" /></CardContent></Card>
             ))}
             {!isLoading && filteredAndSortedQuotes.map((quote) => (
-                <Card key={quote.id} className="overflow-hidden border-l-4" style={{ borderLeftColor: quote.status === 'Pendiente' ? '#eab308' : quote.status === 'Imprimiendo' ? '#3b82f6' : '#22c55e' }}>
+                <Card key={quote.id} className="overflow-hidden border-l-4" style={{ borderLeftColor: quote.status === 'Pendiente' ? '#eab308' : quote.status === 'Imprimiendo' ? '#3b82f6' : quote.status === 'Listo' ? '#a855f7' : '#22c55e' }}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
                             <CardTitle className="text-base font-medium">{quote.clientName}</CardTitle>
@@ -607,6 +609,7 @@ export default function QuotesPage() {
                               <SelectContent>
                                 <SelectItem value="Pendiente">Pendiente</SelectItem>
                                 <SelectItem value="Imprimiendo">Imprimiendo</SelectItem>
+                                <SelectItem value="Listo">Listo</SelectItem>
                                 <SelectItem value="Entregado">Entregado</SelectItem>
                               </SelectContent>
                             </Select>
@@ -647,6 +650,7 @@ export default function QuotesPage() {
                         <SelectContent>
                           <SelectItem value="Pendiente">Pendiente</SelectItem>
                           <SelectItem value="Imprimiendo">Imprimiendo</SelectItem>
+                          <SelectItem value="Listo">Listo</SelectItem>
                           <SelectItem value="Entregado">Entregado</SelectItem>
                         </SelectContent>
                       </Select>
